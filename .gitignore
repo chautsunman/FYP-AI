@@ -1,3 +1,6 @@
+data/stock_prices/*.csv
+credentials
+
 __pycache__
 
 env
