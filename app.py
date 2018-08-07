@@ -22,7 +22,7 @@ def hello_world():
 })
 def get_stock_prices(stock_code):
     stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv")
-    return jsonify({"stockPriceData": stock_prices.loc[:, ["timestamp", "close"]].values.tolist()})
+    return jsonify({"stockPriceData": stock_prices.loc[:, ["timestamp", "adjusted_close"]].values.tolist()})
 
 @app.route("/model/linear_regression/train")
 def train_linear_regression():
