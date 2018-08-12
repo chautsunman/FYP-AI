@@ -1,4 +1,5 @@
 data/stock_prices/*.csv
+saved_models
 credentials
 
 __pycache__

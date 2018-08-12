@@ -1,15 +1,14 @@
 from flask import Flask
-from flask.json import jsonify
+from flask import request
+from flask import jsonify
 
 from flask_cors import cross_origin
 
-app = Flask(__name__)
-
-import numpy as np
-from data.linear_data import get_linear_data
 import pandas as pd
 
 from models.linear_regression import LinearRegression
+
+app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
@@ -24,22 +23,29 @@ def get_stock_prices(stock_code):
     stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv")
     return jsonify({"stockPriceData": stock_prices.loc[:, ["timestamp", "adjusted_close"]].values.tolist()})
 
-@app.route("/model/linear_regression/train")
-def train_linear_regression():
-    x, y = get_linear_data(100)
+@app.route("/model/linear/predict/<stock_code>")
+@cross_origin({
+    "origins": ["localhost"],
+    "methods": "GET"
+})
+def linear_predict(stock_code):
+    if "useStockPrice" not in request.args or "n" not in request.args:
+        return jsonify({"success": False, "error": {"code": "invalid-argument"}})
 
-    model = LinearRegression()
+    model_options = {
+        "stock_code": stock_code,
+        "use_stock_price": False if request.args.get("useStockPrice") != "true" else True,
+        "n": int(request.args.get("n"))
+    }
 
-    model.train(x, y)
+    model = LinearRegression(model_options, load=True, saved_model_dir="./saved_models/linear")
+    if model.model is None:
+        return jsonify({"success": False, "error": {"code": "invalid-argument"}})
 
-    return jsonify({"w": model.model.coef_.tolist(), "b": model.model.intercept_})
+    if not model_options["use_stock_price"]:
+        stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=1)
+        predictions = model.predict(stock_prices.loc[0, "adjusted_close"])
+    else:
+        predictions = model.predict()
 
-@app.route("/model/linear_regression/predict")
-def linear_regression_predict():
-    x = np.random.randn(10, 2)
-
-    model = LinearRegression()
-    model.model.coef_ = np.array([2, 16])
-    model.model.intercept_ = 18
-
-    return jsonify(model.predict(x).tolist())
+    return jsonify({"success": True, "predictions": predictions.tolist()})
