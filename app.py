@@ -6,7 +6,7 @@ from flask_cors import cross_origin
 
 import pandas as pd
 
-from models.linear_regression import LinearRegression
+from models.linear_regression import LinearRegression, get_all_predictions as get_all_linear_predictions
 from models.svr_regression import SupportVectorRegression
 
 app = Flask(__name__)
@@ -23,6 +23,22 @@ def hello_world():
 def get_stock_prices(stock_code):
     stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv")
     return jsonify({"stockPriceData": stock_prices.loc[:, ["timestamp", "adjusted_close"]].values.tolist()})
+
+@app.route("/predict/<stock_code>")
+@cross_origin({
+    "origins": ["localhost"],
+    "methods": "GET"
+})
+def predict(stock_code):
+    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=1)
+
+    predictions, models = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
+
+    predictions = [prediction.tolist() for prediction in predictions]
+
+    models = [{"modelName": model.get_model_display_name()} for model in models]
+
+    return jsonify({"success": True, "predictions": predictions, "models": models})
 
 @app.route("/model/linear/predict/<stock_code>")
 @cross_origin({
