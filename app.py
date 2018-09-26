@@ -1,3 +1,7 @@
+from datetime import date
+import json
+import os
+
 from flask import Flask
 from flask import request
 from flask import jsonify
@@ -39,6 +43,29 @@ def predict(stock_code):
     models = [{"modelName": model.get_model_display_name()} for model in models]
 
     return jsonify({"success": True, "predictions": predictions, "models": models})
+
+@app.route("/save_predictions/<stock_code>")
+def save_predictions(stock_code):
+    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=1)
+
+    # get all predictions and models
+    predictions, models = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
+
+    # format predictions
+    predictions = [prediction.tolist() for prediction in predictions]
+
+    # format models
+    models = [{"modelName": model.get_model_display_name()} for model in models]
+
+    # create the predictions folder for the stock if it does not exist
+    if not os.path.isdir("./saved_predictions/" + stock_code):
+        os.makedirs("./saved_predictions/" + stock_code)
+
+    # save the predictions and models
+    with open("./saved_predictions/" + stock_code + "/" + date.today().isoformat() + ".json", "w") as predictions_file:
+        json.dump({"predictions": predictions, "models": models}, predictions_file)
+
+    return jsonify({"success": True})
 
 @app.route("/model/linear/predict/<stock_code>")
 @cross_origin({
