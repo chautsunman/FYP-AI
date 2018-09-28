@@ -5,6 +5,7 @@ import pandas as pd
 
 from models.linear_regression import LinearRegression
 from models.svr_regression import SupportVectorRegression
+from models.dnn_regression import DenseNeuralNetwork
 
 def train_model(args):
     if not os.path.isdir("./saved_models"):
@@ -22,6 +23,7 @@ def train_model(args):
         model.train(stock_prices)
 
         model.save("./saved_models/linear")
+
     elif args.model == "svr":
         model = SupportVectorRegression({
             "stock_code": args.regression_stock_code,
@@ -45,12 +47,27 @@ def train_model(args):
         model.train(stock_prices)
 
         model.save("./saved_models/svr")
+    
+    elif args.model == "dnn":
+        model = DenseNeuralNetwork({
+            "stock_code": args.regression_stock_code,
+            "use_stock_price": args.regression_use_stock_price,
+            "n": args.neural_network_n,
+            "lookback": args.neural_network_lookback
+        })
+
+        stock_prices = pd.read_csv("./data/stock_prices/" + args.regression_stock_code + ".csv", nrows=args.regression_n)
+
+        model.train(stock_prices)
+
+        model.save("./saved_models/dnn")
+
     else:
         return
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a model.")
-    parser.add_argument("model", choices=["linear", "svr"], help="Model")
+    parser.add_argument("model", choices=["linear", "svr", "dnn"], help="Model")
     parser.add_argument("--regression-stock-code", help="Stock code")
     parser.add_argument("--regression-use-stock-price", action="store_true", help="Use stock price as the data")
     parser.add_argument("--regression-n", default=30, type=int, choices=[30, 90, 180, 365], help="Number of latest stock prices to use for regression")
@@ -67,6 +84,10 @@ if __name__ == "__main__":
     parser.add_argument("--cache-size", default=500.0, type=float, help="Size of kernel cache in MB")
     parser.add_argument("--verbose", default=False, type=bool, help="Enable verbose output")
     parser.add_argument("--max_iter", default=-1, type=int, help="Max iterations within solver, -1 for no limit")
+
+    # For DNN
+    parser.add_argument("--neural-network-n", default=30, type=int, choices=[30, 90, 180, 365], help="Number of latest stock prices to use for DNN")
+    parser.add_argument("--neural-network-lookback", default=1, type=int, choices=[1, 2, 3, 4], help="Neural Network Lookback")
 
     args = parser.parse_args()
 
