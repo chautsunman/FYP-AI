@@ -1,4 +1,5 @@
 data/stock_prices/*.csv
+train_models.json
 saved_models
 saved_predictions
 credentials
