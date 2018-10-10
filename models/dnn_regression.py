@@ -15,46 +15,43 @@ from models.model import Model
 
 class DenseNeuralNetwork(Model):
 
+    # Function to rebuild the model
     def build_model(self):
+
+        # Seed the machine
         np.random.seed()
+
         self.model = Sequential()
+
+        # Specify the neural network configuration
         self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
         self.model.add(Dense(units=8, activation="relu")) 
         self.model.add(Dense(units=1, activation="relu"))
 
-        #sgd = optimizers.SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
         self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
-
 
 
     def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
         Model.__init__(self, model_options)
 
-
-        if not load or saved_model_dir is None:
-            self.model = Sequential()
-            self.model.add(Dense(units=64, activation="relu", input_shape=(model_options["lookback"],)))
-            self.model.add(Dense(units=10, activation="relu")) 
-            self.model.add(Dense(units=1, activation="relu"))
-
-            sgd = optimizers.SGD(lr=0.0001, decay=1e-6, momentum=0.9, nesterov=True)
-            self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
-
-        else:
+        if load and saved_model_dir is not None:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
                 self.model = load_model(saved_model_dir + "/" + model_path)
 
+    # Transform time-series data to a dataset modeling stock price at t 
+    # given stock prices at previous time periods
+    # i.e. ((p0, p1, p2...), pn)
     def build_lookback(self, data, lookback=1):
         return np.stack(data[i:i+lookback] for i in range(0, data.shape[0]-lookback)), data[lookback:]
 
     def train(self, stock_prices):
-
         if not self.model_options["use_stock_price"]:
             data = stock_prices["change"]
         else:
             data = stock_prices["adjusted_close"]
 
+        # Reverse order of the data
         data = np.flipud(data.values.reshape(-1))
         x, y = self.build_lookback(data, self.model_options["lookback"])
         
@@ -62,7 +59,7 @@ class DenseNeuralNetwork(Model):
         loss = 500
         while loss >= 500:
             self.build_model()
-            self.model.fit(x, y, epochs=200, batch_size=4).history
+            self.model.fit(x, y, epochs=200, batch_size=4)
             loss = self.model.evaluate(x, y)[1]
             print(loss)
 
@@ -72,17 +69,10 @@ class DenseNeuralNetwork(Model):
 
         x = last_prices.values[-self.model_options["lookback"]:].reshape(1, self.model_options["lookback"])
 
-        print("Input")
-        print(x)
-
         results = []
 
         for i in range(1, 10):
-            print("Predicting " + str(i))
-            print("Input")
-            print(x)
             predictions = self.model.predict(x).flatten()
-            print(predictions[0])
             results.append(predictions[0])
 
             # Use last record as new record's x
@@ -90,7 +80,7 @@ class DenseNeuralNetwork(Model):
             x[0, -1] = predictions[0]
 
         if not self.model_options["use_stock_price"]:
-            predictions[0] = last_prices[-1]* (1 + predictions[0])
+            predictions[0] = last_prices[-1] * (1 + predictions[0])
             for i in range(1, predictions.shape[0]):
                 predictions[i] = predictions[i - 1] * (1 + predictions[i])
 
