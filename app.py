@@ -11,7 +11,7 @@ from flask_cors import cross_origin
 import pandas as pd
 
 from models.linear_regression import LinearRegression, get_all_predictions as get_all_linear_predictions
-from models.svr_regression import SupportVectorRegression
+from models.svr_regression import SupportVectorRegression, get_all_predictions as get_all_svr_predictions
 from models.dnn_regression import DenseNeuralNetwork
 
 app = Flask(__name__)
@@ -37,13 +37,18 @@ def get_stock_prices(stock_code):
 def predict(stock_code):
     stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=1)
 
-    predictions, models = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
+    predictions_all = []
 
-    predictions = [prediction.tolist() for prediction in predictions]
+    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
+    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr", stock_prices.loc[0, "adjusted_close"])
 
-    models = [{"modelName": model.get_model_display_name()} for model in models]
+    predictions_all = predictions_linear + predictions_svr
+    models_all = models_linear + models_svr
 
-    return jsonify({"success": True, "predictions": predictions, "models": models})
+    predictions_all = [prediction.tolist() for prediction in predictions_all]
+    models_all = [{"modelName": model.get_model_display_name()} for model in models_all]
+
+    return jsonify({"success": True, "predictions": predictions_all, "models": models_all})
 
 @app.route("/save_predictions/<stock_code>")
 def save_predictions(stock_code):

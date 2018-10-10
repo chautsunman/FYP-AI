@@ -10,7 +10,7 @@ from sklearn.metrics import mean_squared_error
 from models.model import Model
 
 class SupportVectorRegression(Model):
-    def __init__(self, model_options, load=False, saved_model_dir=None):
+    def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
         Model.__init__(self, model_options)
 
         print(saved_model_dir)
@@ -31,7 +31,7 @@ class SupportVectorRegression(Model):
                 max_iter=self.model_options["max_iter"]
             )
         else:
-            model_path = self.get_saved_model_path(saved_model_dir)
+            model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
                 with open(saved_model_dir + "/" + model_path, "rb") as model_file:
                     self.model = pickle.load(model_file)
@@ -140,5 +140,30 @@ class SupportVectorRegression(Model):
 
         return models_data["models"][self.model_options["stock_code"]][model_type][-1]["model_path"]
 
+    def get_model_display_name(self):
+        return "SVM Regression"
+
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
+
+def get_all_predictions(stock_code, saved_model_dir, last_price):
+    with open(saved_model_dir + "/models_data.json", "r") as models_data_file:
+        models_data = json.load(models_data_file)
+
+    if stock_code not in models_data["models"]:
+        return [], []
+
+    models_data = models_data["models"][stock_code]
+
+    models = []
+    for _, model_options in models_data.items():
+        models.append(SupportVectorRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
+
+    predictions = []
+    for model in models:
+        if not model.model_options["use_stock_price"]:
+            predictions.append(model.predict(last_price))
+        else:
+            predictions.append(model.predict())
+
+    return predictions, models
