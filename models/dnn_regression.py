@@ -15,7 +15,7 @@ from models.model import Model
 
 class DenseNeuralNetwork(Model):
 
-    # Function to rebuild the model
+    # Helper method to build the DNN model 
     def build_model(self):
 
         # Seed the machine
@@ -30,11 +30,13 @@ class DenseNeuralNetwork(Model):
 
         self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
 
-
     def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
         Model.__init__(self, model_options)
 
-        if load and saved_model_dir is not None:
+        if not load or saved_model_dir is None:
+            self.build_model()
+
+        else:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
                 self.model = load_model(saved_model_dir + "/" + model_path)
@@ -86,24 +88,34 @@ class DenseNeuralNetwork(Model):
 
         return np.array(results)
 
+    # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
         Model.create_model_dir(self, saved_model_dir + "/" + self.model_options["stock_code"])
 
+        # Get the model name
         model_name = self.get_model_name()
+        
+        # Build the relative path of the model file
         model_path = self.model_options["stock_code"] + "/" + model_name
 
         fullpath = saved_model_dir + "/" + model_path
         self.model.save(fullpath)
 
+        # Update the configuration file models_data.json, which stores metadata for all
+        # the models built with DNN
         if os.path.isfile(saved_model_dir + "/" + "models_data.json"):
+            # Append to existing configuration file if there is one
             with open(saved_model_dir + "/" + "models_data.json", "r") as models_data_file:
                 models_data = json.load(models_data_file)
         else:
+            # Create a new one if there is no configuration file for DNN yet
             models_data = {"models": {}}
 
         if self.model_options["stock_code"] not in models_data["models"]:
             models_data["models"][self.model_options["stock_code"]] = {}
 
+        # model_type consists of all the parameters used for training this particular model
+        # e.g. number of days used
         model_type = self.get_model_type()
 
         if model_type not in models_data["models"][self.model_options["stock_code"]]:
@@ -118,14 +130,16 @@ class DenseNeuralNetwork(Model):
         with open(saved_model_dir + "/" + "models_data.json", "w") as models_data_file:
             json.dump(models_data, models_data_file)
 
+    # Configuration options for a particular model
     def get_model_type(self):
         model_type = []
-        print(self.model_options)
         model_type.append(str(self.model_options["n"]) + "days")
         model_type.append(str(self.model_options["lookback"]) + "lookback")
         model_type.append("change" if not self.model_options["use_stock_price"] else "price")
         return "_".join(model_type)
 
+    # Build and get the model name
+    # This implementation uses the model type plus a timestamp
     def get_model_name(self):
         model_name = []
         model_name.append(self.get_model_type())
@@ -149,12 +163,10 @@ class DenseNeuralNetwork(Model):
 
         return models_data["models"][self.model_options["stock_code"]][model_type][-1]["model_path"]
 
+    # Get the "Display name" for the model
     def get_model_display_name(self):
-        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price"]
-        return "Linear Regression (%s)" % " ".join(options_name)
-
-    def error(self, y_true, y_pred):
-        return mean_squared_error(y_true, y_pred)
+        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price", "lookback =", self.model_options["lookback"]]
+        return "Dense Neural Network (%s)" % " ".join(options_name)
 
 def get_all_predictions(stock_code, saved_model_dir, last_price):
     with open(saved_model_dir + "/models_data.json", "r") as models_data_file:

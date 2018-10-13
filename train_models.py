@@ -21,8 +21,18 @@ def train_models(model_options):
             model.train(stock_prices)
 
             model.save("./saved_models/linear")
+
         elif model_option["model"] == "svr":
             model = SupportVectorRegression(model_option)
+
+            stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
+
+            model.train(stock_prices)
+
+            model.save("./saved_models/svr")
+
+        elif model_option["model"] == "dnn":
+            model = DenseNeuralNetwork(model_option)
 
             stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
 
