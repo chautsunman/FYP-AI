@@ -41,6 +41,7 @@ class DenseNeuralNetwork(Model):
             if model_path is not None:
                 self.model = load_model(saved_model_dir + "/" + model_path)
 
+    # Build input, ouput for training
     # Transform time-series data to a dataset modeling stock price at t 
     # given stock prices at previous time periods
     # i.e. ((p0, p1, p2...), pn)
