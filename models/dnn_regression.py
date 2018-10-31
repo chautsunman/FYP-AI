@@ -58,36 +58,43 @@ class DenseNeuralNetwork(Model):
         data = np.flipud(data.values.reshape(-1))
         x, y = self.build_lookback(data, self.model_options["lookback"])
         
-        print(x, y)
-        loss = 500
-        while loss >= 500:
+        loss = 300
+        while loss >= 300:
             self.build_model()
             self.model.fit(x, y, epochs=200, batch_size=4)
             loss = self.model.evaluate(x, y)[1]
             print(loss)
 
-    def predict(self, last_prices=None):
-        if not self.model_options["use_stock_price"] and last_prices is None:
+    def predict(self, lookback_data, last_price=None):
+        if not self.model_options["use_stock_price"] and last_price is None:
             return None
 
-        x = last_prices.values[-self.model_options["lookback"]:].reshape(1, self.model_options["lookback"])
+        if not self.model_options["use_stock_price"]:
+            data = lookback_data["change"]
+        else:
+            data = lookback_data["adjusted_close"]
 
-        results = []
+        x = np.flipud(data.values.reshape(1, -1))
+        print(x)
 
-        for i in range(1, 10):
-            predictions = self.model.predict(x).flatten()
-            results.append(predictions[0])
+        predictions = []
+
+        for i in range(0, 30):
+            results = self.model.predict(x).flatten()
+            predictions.append(results[0])
 
             # Use last record as new record's x
             x = np.roll(x, -1, axis=-1)
-            x[0, -1] = predictions[0]
+            x[0, -1] = results[0]
+
+        print(predictions)
 
         if not self.model_options["use_stock_price"]:
-            predictions[0] = last_prices[-1] * (1 + predictions[0])
-            for i in range(1, predictions.shape[0]):
+            predictions[0] = last_price * (1 + predictions[0])
+            for i in range(1, len(predictions)):
                 predictions[i] = predictions[i - 1] * (1 + predictions[i])
 
-        return np.array(results)
+        return np.array(predictions)
 
     # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
@@ -129,7 +136,7 @@ class DenseNeuralNetwork(Model):
         models_data["models"][self.model_options["stock_code"]][model_type].append(model_data)
 
         with open(saved_model_dir + "/" + "models_data.json", "w") as models_data_file:
-            json.dump(models_data, models_data_file)
+            json.dump(models_data, models_data_file, indent=4)
 
     # Configuration options for a particular model
     def get_model_type(self):
@@ -166,10 +173,10 @@ class DenseNeuralNetwork(Model):
 
     # Get the "Display name" for the model
     def get_model_display_name(self):
-        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price", "lookback =", self.model_options["lookback"]]
+        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price", "lookback =", str(self.model_options["lookback"])]
         return "Dense Neural Network (%s)" % " ".join(options_name)
 
-def get_all_predictions(stock_code, saved_model_dir, last_price):
+def get_all_predictions(stock_code, saved_model_dir, lookback_data, last_price):
     with open(saved_model_dir + "/models_data.json", "r") as models_data_file:
         models_data = json.load(models_data_file)
 
@@ -180,14 +187,30 @@ def get_all_predictions(stock_code, saved_model_dir, last_price):
 
     models = []
     for _, model_options in models_data.items():
-        models.append(LinearRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
+        models.append(DenseNeuralNetwork(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
 
     predictions = []
     for model in models:
         if not model.model_options["use_stock_price"]:
-            predictions.append(model.predict(last_price))
+            predictions.append(model.predict(lookback_data, last_price))
         else:
-            predictions.append(model.predict())
+            predictions.append(model.predict(lookback_data))
 
     return predictions, models
+
+def get_no_of_data_required(stock_code, saved_model_dir):
+    with open(saved_model_dir + "/models_data.json", "r") as models_data_file:
+        models_data = json.load(models_data_file)
+
+    if stock_code not in models_data["models"]:
+        return 0
+
+    models_data = models_data["models"][stock_code]
+
+    no_required = 0
+    for _, model_options in models_data.items():
+        if model_options[-1]["lookback"] > no_required:
+            no_required = model_options[-1]["lookback"]
+
+    return no_required 
 

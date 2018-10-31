@@ -39,6 +39,20 @@
             "cache_size": 500.0,
             "verbose": false,
             "max_iter": -1
+        },
+        {
+            "model": "dnn",
+            "stock_code": "GOOGL",
+            "use_stock_price": false,
+            "n": 1000,
+            "lookback": 10 
+        },
+        {
+            "model": "dnn",
+            "stock_code": "GOOGL",
+            "use_stock_price": true,
+            "n": 1000,
+            "lookback": 10
         }
     ]
 }
