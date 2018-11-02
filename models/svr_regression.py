@@ -13,8 +13,6 @@ class SupportVectorRegression(Model):
     def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
         Model.__init__(self, model_options)
 
-        print(saved_model_dir)
-
         # Please check scipy SVR documentation for details
         if not load or saved_model_dir is None:
             self.model = SVR(
@@ -34,6 +32,7 @@ class SupportVectorRegression(Model):
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
                 with open(saved_model_dir + "/" + model_path, "rb") as model_file:
+                    print(model_path)
                     self.model = pickle.load(model_file)
 
     def train(self, stock_prices):
@@ -92,7 +91,7 @@ class SupportVectorRegression(Model):
         models_data["models"][self.model_options["stock_code"]][model_type].append(model_data)
 
         with open(saved_model_dir + "/" + "models_data.json", "w") as models_data_file:
-            json.dump(models_data, models_data_file)
+            json.dump(models_data, models_data_file, indent=4)
 
     def get_model_type(self):
         model_type = []
@@ -140,8 +139,16 @@ class SupportVectorRegression(Model):
 
         return models_data["models"][self.model_options["stock_code"]][model_type][-1]["model_path"]
 
+    # Return the name of the model in displayable format
     def get_model_display_name(self):
-        return "SVM Regression"
+
+        # check if the model uses stock prices or daily changes
+        if not self.model_options["use_stock_price"]:
+            data = "change"
+        else:
+            data = "price"
+
+        return "SVM Regression, Kernel = {} ({} days {})".format(self.model_options["kernel"], self.model_options["n"], data)
 
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)

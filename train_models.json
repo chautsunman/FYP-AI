@@ -24,11 +24,21 @@
             "max_iter": -1
         },
         {
-            "model": "dnn",
+            "model": "svr",
             "stock_code": "GOOGL",
             "use_stock_price": true,
-            "n": 1000,
-            "lookback": 30
+            "n": 40,
+            "kernel": "poly",
+            "degree": 3,
+            "gamma": "auto",
+            "coef0": 0.0,
+            "tol": 0.001,
+            "C": 1.0,
+            "epsilon": 0.1,
+            "shrinking": true,
+            "cache_size": 500.0,
+            "verbose": false,
+            "max_iter": -1
         }
     ]
 }
