@@ -23,12 +23,22 @@ class DenseNeuralNetwork(Model):
 
         self.model = Sequential()
 
-        # Specify the neural network configuration
-        self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
-        self.model.add(Dense(units=8, activation="relu")) 
-        self.model.add(Dense(units=1, activation="relu"))
+        net = self.model_options["net"]
 
-        self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
+        # Specify the neural network configuration
+        for layer in net["layers"]:
+            if "is_input" in layer and layer["is_input"]:
+                self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(self.model_options["lookback"],)))
+            elif "is_output" in layer and layer["is_output"]:
+                self.model.add(Dense(units=1, activation=layer["activation"]))
+            else:
+                self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
+        #self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
+        #self.model.add(Dense(units=8, activation="relu")) 
+        #self.model.add(Dense(units=1, activation="relu"))
+
+        #self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
+        self.model.compile(loss=net["loss"], optimizer=net["optimizer"], metrics=net["metrics"])
 
     def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
         Model.__init__(self, model_options)
@@ -58,12 +68,21 @@ class DenseNeuralNetwork(Model):
         data = np.flipud(data.values.reshape(-1))
         x, y = self.build_lookback(data, self.model_options["lookback"])
         
-        loss = 300
-        while loss >= 300:
-            self.build_model()
-            self.model.fit(x, y, epochs=200, batch_size=4)
-            loss = self.model.evaluate(x, y)[1]
-            print(loss)
+        # Initialize the evaluation_metric to its threshold so that the model must be trained
+        # at least once
+        evaluation_metric = self.model_options["net"]["evaluation_criteria"]["threshold"]
+
+        # If we aim to minimize the evaluation criteria, e.g. mse, retrain until criteria < threshold
+        if self.model_options["net"]["evaluation_criteria"]["minimize"]:
+            while evaluation_metric >= self.model_options["net"]["evaluation_criteria"]["threshold"]:
+                self.build_model()
+                self.model.fit(x, y, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
+                evaluation_metric = self.model.evaluate(x, y)[1]
+        else:
+            while evaluation_metric <= self.model_options["net"]["evaluation_criteria"]["threshold"]:
+                self.build_model()
+                self.model.fit(x, y, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
+                evaluation_metric = self.model.evaluate(x, y)[1]
 
     def predict(self, lookback_data, last_price=None):
         if not self.model_options["use_stock_price"] and last_price is None:
@@ -144,6 +163,7 @@ class DenseNeuralNetwork(Model):
         model_type.append(str(self.model_options["n"]) + "days")
         model_type.append(str(self.model_options["lookback"]) + "lookback")
         model_type.append("change" if not self.model_options["use_stock_price"] else "price")
+        model_type.append(self.model_options["net"]["name"])
         return "_".join(model_type)
 
     # Build and get the model name
