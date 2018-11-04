@@ -11,14 +11,6 @@ import pandas as pd
 from models.linear_regression import get_all_predictions as get_all_linear_predictions
 from models.svr_regression import get_all_predictions as get_all_svr_predictions
 
-# initialize Firebase admin
-cred = credentials.Certificate("credentials/firebase-adminsdk.json")
-firebase_admin.initialize_app(cred, {
-    "storageBucket": "cmms-fyp.appspot.com"
-})
-
-bucket = storage.bucket()
-
 def get_predictions(stock_code):
     """Get the predictions of a stock from all trained models.
 
@@ -69,6 +61,14 @@ def save_predictions_local(stock_code):
         json.dump(predictions, predictions_file)
 
 def save_predictions_cloud(stock_code):
+    # initialize Firebase admin
+    cred = credentials.Certificate("credentials/firebase-adminsdk.json")
+    firebase_admin.initialize_app(cred, {
+        "storageBucket": "cmms-fyp.appspot.com"
+    })
+
+    bucket = storage.bucket()
+
     # get the predictions
     predictions = get_predictions(stock_code)
 
