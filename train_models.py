@@ -13,23 +13,23 @@ def train_models(model_options):
         os.makedirs("./saved_models")
 
     for model_option in model_options:
-        if model_option["model"] == "linear":
+        if model_option["model"] == "linear_index_regression":
             model = LinearRegression(model_option)
 
             stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
 
             model.train(stock_prices)
 
-            model.save("./saved_models/linear")
+            model.save("./saved_models/linear_index_regression")
 
-        elif model_option["model"] == "svr":
+        elif model_option["model"] == "svr_index_regression":
             model = SupportVectorRegression(model_option)
 
             stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
 
             model.train(stock_prices)
 
-            model.save("./saved_models/svr")
+            model.save("./saved_models/svr_index_regression")
 
         elif model_option["model"] == "dnn":
             model = DenseNeuralNetwork(model_option)

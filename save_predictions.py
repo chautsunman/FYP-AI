@@ -36,8 +36,8 @@ def get_predictions(stock_code):
     predictions_all = []
 
     # get all predictions and models
-    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
-    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr", stock_prices.loc[0, "adjusted_close"])
+    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear_index_regression", stock_prices.loc[0, "adjusted_close"])
+    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr_index_regression", stock_prices.loc[0, "adjusted_close"])
 
     predictions_all = predictions_linear + predictions_svr
     models_all = models_linear + models_svr

@@ -3,46 +3,29 @@ import json
 import time
 import os
 
-from sklearn.svm import SVR
+from sklearn import linear_model
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from models.model import Model
+from index_regression import IndexRegressionModel
 
-class SupportVectorRegression(Model):
+class LinearRegression(IndexRegressionModel):
     def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
-        Model.__init__(self, model_options)
+        IndexRegressionModel.__init__(self, model_options)
 
-        # Please check scipy SVR documentation for details
         if not load or saved_model_dir is None:
-            self.model = SVR(
-                kernel=self.model_options["kernel"], 
-                degree=self.model_options["degree"], 
-                gamma=self.model_options["gamma"],
-                coef0=self.model_options["coef0"],
-                tol=self.model_options["tol"],
-                C=self.model_options["C"],
-                epsilon=self.model_options["epsilon"],
-                shrinking=self.model_options["shrinking"],
-                cache_size=self.model_options["cache_size"],
-                verbose=self.model_options["verbose"],
-                max_iter=self.model_options["max_iter"]
-            )
+            self.model = linear_model.LinearRegression()
         else:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
                 with open(saved_model_dir + "/" + model_path, "rb") as model_file:
-                    print(model_path)
                     self.model = pickle.load(model_file)
 
     def train(self, stock_prices):
         x = np.arange(self.model_options["n"]).reshape(-1, 1)
 
-        print(stock_prices)
-
         y = stock_prices["change" if not self.model_options["use_stock_price"] else "adjusted_close"]
-        # 1-D array is expected
-        y = np.flipud(y.values)
+        y = np.flipud(y.values.reshape(-1, 1))
 
         self.model.fit(x, y)
 
@@ -62,7 +45,7 @@ class SupportVectorRegression(Model):
         return predictions
 
     def save(self, saved_model_dir):
-        Model.create_model_dir(self, saved_model_dir + "/" + self.model_options["stock_code"])
+        self.create_model_dir(self, saved_model_dir + "/" + self.model_options["stock_code"])
 
         model_name = self.get_model_name()
         model_path = self.model_options["stock_code"] + "/" + model_name
@@ -91,22 +74,11 @@ class SupportVectorRegression(Model):
         models_data["models"][self.model_options["stock_code"]][model_type].append(model_data)
 
         with open(saved_model_dir + "/" + "models_data.json", "w") as models_data_file:
-            json.dump(models_data, models_data_file, indent=4)
+            json.dump(models_data, models_data_file)
 
     def get_model_type(self):
         model_type = []
         model_type.append(str(self.model_options["n"]) + "days")
-        model_type.append(str(self.model_options["kernel"]))
-        model_type.append("degree" + str(self.model_options["degree"]))
-        model_type.append("C" + str(self.model_options["C"]))
-        model_type.append("gamma" + str(self.model_options["gamma"]))
-        model_type.append("coef0" + str(self.model_options["coef0"]))
-        model_type.append("tol" + str(self.model_options["tol"]))
-        model_type.append("epsilon" + str(self.model_options["epsilon"]))
-        model_type.append("shrinking" + str(self.model_options["shrinking"]))
-        model_type.append("cache_size" + str(self.model_options["cache_size"]))
-        model_type.append("verbose" + str(self.model_options["verbose"]))
-        model_type.append("max_iter" + str(self.model_options["max_iter"]))
         model_type.append("change" if not self.model_options["use_stock_price"] else "price")
         return "_".join(model_type)
 
@@ -118,37 +90,24 @@ class SupportVectorRegression(Model):
 
     def get_saved_model_path(self, saved_model_dir):
         if not os.path.isfile(saved_model_dir + "/" + "models_data.json"):
-            print("No models_data.json")
             return None
 
         with open(saved_model_dir + "/" + "models_data.json", "r") as models_data_file:
             models_data = json.load(models_data_file)
 
         if self.model_options["stock_code"] not in models_data["models"]:
-            print("No stock code")
             return None
 
         model_type = self.get_model_type()
 
-        print(models_data)
-        print(model_type)
-
         if model_type not in models_data["models"][self.model_options["stock_code"]]:
-            print("No model type")
             return None
 
         return models_data["models"][self.model_options["stock_code"]][model_type][-1]["model_path"]
 
-    # Return the name of the model in displayable format
     def get_model_display_name(self):
-
-        # check if the model uses stock prices or daily changes
-        if not self.model_options["use_stock_price"]:
-            data = "change"
-        else:
-            data = "price"
-
-        return "SVM Regression, Kernel = {} ({} days {})".format(self.model_options["kernel"], self.model_options["n"], data)
+        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price"]
+        return "Linear Regression (%s)" % " ".join(options_name)
 
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
@@ -164,7 +123,7 @@ def get_all_predictions(stock_code, saved_model_dir, last_price):
 
     models = []
     for _, model_options in models_data.items():
-        models.append(SupportVectorRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
+        models.append(LinearRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
 
     predictions = []
     for model in models:
