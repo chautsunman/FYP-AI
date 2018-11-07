@@ -12,9 +12,9 @@ import pandas as pd
 
 from upload_stock_prices import get_stock_prices
 from save_predictions import get_predictions
-from models.linear_regression import LinearRegression
-from models.svr_regression import SupportVectorRegression
-from models.dnn_regression import DenseNeuralNetwork
+from models.linear_regression import LinearRegression, get_all_predictions as get_all_linear_predictions
+from models.svr_regression import SupportVectorRegression, get_all_predictions as get_all_svr_predictions
+from models.dnn_regression import DenseNeuralNetwork, get_all_predictions as get_all_dnn_predictions, get_no_of_data_required
 
 app = Flask(__name__)
 
