@@ -12,6 +12,7 @@ from models.linear_regression import get_all_predictions as get_all_linear_predi
 from models.svr import get_all_predictions as get_all_svr_predictions
 from models.linear_index_regression import get_all_predictions as get_all_linear_index_regression_predictions
 from models.svr_index_regression import get_all_predictions as get_all_svr_index_regression_predictions
+from models.dnn_regression import DenseNeuralNetwork, get_all_predictions as get_all_dnn_predictions, get_no_of_data_required
 
 def get_predictions(stock_code):
     """Get the predictions of a stock from all trained models.
@@ -33,7 +34,8 @@ def get_predictions(stock_code):
         }
     """
 
-    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=1)
+    no_of_data_required = get_no_of_data_required(stock_code, "./saved_models/dnn")
+    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=no_of_data_required)
 
     predictions_all = []
 
@@ -42,9 +44,10 @@ def get_predictions(stock_code):
     predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr")
     predictions_linear_index_regression, models_linear_index_regression = get_all_linear_index_regression_predictions(stock_code, "./saved_models/linear_index_regression", stock_prices.loc[0, "adjusted_close"])
     predictions_svr_index_regression, models_svr_index_regression = get_all_svr_index_regression_predictions(stock_code, "./saved_models/svr_index_regression", stock_prices.loc[0, "adjusted_close"])
+    predictions_dnn, models_dnn = get_all_dnn_predictions(stock_code, "./saved_models/dnn", stock_prices, stock_prices.loc[0, "adjusted_close"])
 
-    predictions_all = predictions_linear + predictions_svr + predictions_linear_index_regression + predictions_svr_index_regression
-    models_all = models_linear + models_svr + models_linear_index_regression + models_svr_index_regression
+    predictions_all = predictions_linear + predictions_svr + predictions_linear_index_regression + predictions_svr_index_regression + predictions_dnn
+    models_all = models_linear + models_svr + models_linear_index_regression + models_svr_index_regression + models_dnn
 
     # format predictions and models
     predictions_all = [prediction.tolist() for prediction in predictions_all]

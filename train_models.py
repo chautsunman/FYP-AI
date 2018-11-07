@@ -46,7 +46,7 @@ def train_models(train_models_data):
 
             model.train(stock_prices)
 
-            model.save("./saved_models/svr")
+            model.save("./saved_models/dnn")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train models.")
