@@ -10,6 +10,8 @@ from flask_cors import cross_origin
 
 import pandas as pd
 
+from upload_stock_prices import get_stock_prices
+from save_predictions import get_predictions
 from models.linear_regression import LinearRegression, get_all_predictions as get_all_linear_predictions
 from models.svr_regression import SupportVectorRegression, get_all_predictions as get_all_svr_predictions
 from models.dnn_regression import DenseNeuralNetwork, get_all_predictions as get_all_dnn_predictions, get_no_of_data_required
@@ -25,9 +27,9 @@ def hello_world():
     "origins": ["localhost"],
     "methods": "GET"
 })
-def get_stock_prices(stock_code):
-    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv")
-    return jsonify({"stockPriceData": stock_prices.loc[:, ["timestamp", "adjusted_close"]].values.tolist()})
+def stock_prices(stock_code):
+    stock_prices = get_stock_prices(stock_code)
+    return jsonify(stock_prices)
 
 @app.route("/predict/<stock_code>")
 @cross_origin({
@@ -35,50 +37,9 @@ def get_stock_prices(stock_code):
     "methods": "GET"
 })
 def predict(stock_code):
+    predictions = get_predictions(stock_code)
 
-    no_of_data_required = get_no_of_data_required(stock_code, "./saved_models/dnn")
-
-    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=no_of_data_required)
-
-    predictions_all = []
-
-    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
-    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr", stock_prices.loc[0, "adjusted_close"])
-    predictions_dnn, models_dnn = get_all_dnn_predictions(stock_code, "./saved_models/dnn", stock_prices, stock_prices.loc[0, "adjusted_close"])
-
-    predictions_all = predictions_linear + predictions_svr + predictions_dnn
-    #predictions_all = predictions_linear + predictions_dnn
-    models_all = models_linear + models_svr + models_dnn
-    #models_all = models_linear + models_dnn
-
-    predictions_all = [prediction.tolist() for prediction in predictions_all]
-    models_all = [{"modelName": model.get_model_display_name()} for model in models_all]
-
-    return jsonify({"success": True, "predictions": predictions_all, "models": models_all})
-
-@app.route("/save_predictions/<stock_code>")
-def save_predictions(stock_code):
-
-    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=1)
-
-    # get all predictions and models
-    predictions, models = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
-
-    # format predictions
-    predictions = [prediction.tolist() for prediction in predictions]
-
-    # format models
-    models = [{"modelName": model.get_model_display_name()} for model in models]
-
-    # create the predictions folder for the stock if it does not exist
-    if not os.path.isdir("./saved_predictions/" + stock_code):
-        os.makedirs("./saved_predictions/" + stock_code)
-
-    # save the predictions and models
-    with open("./saved_predictions/" + stock_code + "/" + date.today().isoformat() + ".json", "w") as predictions_file:
-        json.dump({"predictions": predictions, "models": models}, predictions_file)
-
-    return jsonify({"success": True})
+    return jsonify({"success": True, "predictions": predictions["predictions"], "models": predictions["models"]})
 
 @app.route("/model/linear/predict/<stock_code>")
 @cross_origin({
