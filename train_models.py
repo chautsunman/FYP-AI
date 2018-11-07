@@ -5,36 +5,44 @@ import os
 import pandas as pd
 
 from models.linear_regression import LinearRegression
-from models.svr_regression import SupportVectorRegression
+from models.svr import SupportVectorRegression
+from models.linear_index_regression import LinearIndexRegression
+from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-def train_models(model_options):
+def train_models(train_models_data):
     if not os.path.isdir("./saved_models"):
         os.makedirs("./saved_models")
 
-    for model_option in model_options:
-        if model_option["model"] == "linear_index_regression":
-            model = LinearRegression(model_option)
+    for train_model_data in train_models_data:
+        if train_model_data["model"] == LinearRegression.MODEL:
+            model = LinearRegression(train_model_data["modelOptions"])
 
-            stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
+        elif train_model_data["model"] == SupportVectorRegression.MODEL:
+            model = SupportVectorRegression(train_model_data["modelOptions"])
+
+        elif train_model_data["model"] == LinearIndexRegression.MODEL:
+            model = LinearIndexRegression(train_model_data["modelOptions"])
+
+            stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
 
             model.train(stock_prices)
 
             model.save("./saved_models/linear_index_regression")
 
-        elif model_option["model"] == "svr_index_regression":
-            model = SupportVectorRegression(model_option)
+        elif train_model_data["model"] == SupportVectorIndexRegression.MODEL:
+            model = SupportVectorIndexRegression(train_model_data["modelOptions"])
 
-            stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
+            stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
 
             model.train(stock_prices)
 
             model.save("./saved_models/svr_index_regression")
 
-        elif model_option["model"] == "dnn":
-            model = DenseNeuralNetwork(model_option)
+        elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
+            model = DenseNeuralNetwork(train_model_data)
 
-            stock_prices = pd.read_csv("./data/stock_prices/" + model_option["stock_code"] + ".csv", nrows=model_option["n"])
+            stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
 
             model.train(stock_prices)
 
@@ -47,6 +55,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     with open('./' + args.train_models_json) as train_models_json_file:
-        model_options = json.load(train_models_json_file)
+        train_models_data = json.load(train_models_json_file)
 
-    train_models(model_options['models'])
+    train_models(train_models_data['models'])

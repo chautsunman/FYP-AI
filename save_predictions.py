@@ -9,7 +9,9 @@ from firebase_admin import storage
 import pandas as pd
 
 from models.linear_regression import get_all_predictions as get_all_linear_predictions
-from models.svr_regression import get_all_predictions as get_all_svr_predictions
+from models.svr import get_all_predictions as get_all_svr_predictions
+from models.linear_index_regression import get_all_predictions as get_all_linear_index_regression_predictions
+from models.svr_index_regression import get_all_predictions as get_all_svr_index_regression_predictions
 
 def get_predictions(stock_code):
     """Get the predictions of a stock from all trained models.
@@ -36,11 +38,13 @@ def get_predictions(stock_code):
     predictions_all = []
 
     # get all predictions and models
-    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear_index_regression", stock_prices.loc[0, "adjusted_close"])
-    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr_index_regression", stock_prices.loc[0, "adjusted_close"])
+    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear_regression")
+    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr")
+    predictions_linear_index_regression, models_linear_index_regression = get_all_linear_index_regression_predictions(stock_code, "./saved_models/linear_index_regression", stock_prices.loc[0, "adjusted_close"])
+    predictions_svr_index_regression, models_svr_index_regression = get_all_svr_index_regression_predictions(stock_code, "./saved_models/svr_index_regression", stock_prices.loc[0, "adjusted_close"])
 
-    predictions_all = predictions_linear + predictions_svr
-    models_all = models_linear + models_svr
+    predictions_all = predictions_linear + predictions_svr + predictions_linear_index_regression + predictions_svr_index_regression
+    models_all = models_linear + models_svr + models_linear_index_regression + models_svr_index_regression
 
     # format predictions and models
     predictions_all = [prediction.tolist() for prediction in predictions_all]

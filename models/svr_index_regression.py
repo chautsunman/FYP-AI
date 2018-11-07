@@ -9,7 +9,9 @@ from sklearn.metrics import mean_squared_error
 
 from index_regression import IndexRegressionModel
 
-class SupportVectorRegression(IndexRegressionModel):
+class SupportVectorIndexRegression(IndexRegressionModel):
+    MODEL = "svr_index_regression"
+
     def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
         IndexRegressionModel.__init__(self, model_options)
 
@@ -164,7 +166,7 @@ def get_all_predictions(stock_code, saved_model_dir, last_price):
 
     models = []
     for _, model_options in models_data.items():
-        models.append(SupportVectorRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
+        models.append(SupportVectorIndexRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
 
     predictions = []
     for model in models:

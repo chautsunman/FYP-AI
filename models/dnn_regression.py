@@ -14,8 +14,9 @@ from sklearn.metrics import mean_squared_error
 from models.model import Model
 
 class DenseNeuralNetwork(Model):
+    MODEL = "dnn"
 
-    # Helper method to build the DNN model 
+    # Helper method to build the DNN model
     def build_model(self):
 
         # Seed the machine
@@ -25,7 +26,7 @@ class DenseNeuralNetwork(Model):
 
         # Specify the neural network configuration
         self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
-        self.model.add(Dense(units=8, activation="relu")) 
+        self.model.add(Dense(units=8, activation="relu"))
         self.model.add(Dense(units=1, activation="relu"))
 
         self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
@@ -42,7 +43,7 @@ class DenseNeuralNetwork(Model):
                 self.model = load_model(saved_model_dir + "/" + model_path)
 
     # Build input, ouput for training
-    # Transform time-series data to a dataset modeling stock price at t 
+    # Transform time-series data to a dataset modeling stock price at t
     # given stock prices at previous time periods
     # i.e. ((p0, p1, p2...), pn)
     def build_lookback(self, data, lookback=1):
@@ -57,7 +58,7 @@ class DenseNeuralNetwork(Model):
         # Reverse order of the data
         data = np.flipud(data.values.reshape(-1))
         x, y = self.build_lookback(data, self.model_options["lookback"])
-        
+
         print(x, y)
         loss = 500
         while loss >= 500:
@@ -95,7 +96,7 @@ class DenseNeuralNetwork(Model):
 
         # Get the model name
         model_name = self.get_model_name()
-        
+
         # Build the relative path of the model file
         model_path = self.model_options["stock_code"] + "/" + model_name
 
