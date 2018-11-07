@@ -3,8 +3,11 @@ from os import path, makedirs
 import pickle
 from hashlib import sha256
 
+from keras.models import load_model
+
 class Model:
     SKLEARN_MODEL = "sklearn"
+    KERAS_MODEL = "keras"
 
     def __init__(self, model_options):
         self.model = None
@@ -23,11 +26,15 @@ class Model:
         if model_type == self.SKLEARN_MODEL:
             with open(model_path, "wb") as model_file:
                 pickle.dump(self.model, model_file)
+        elif model_type == self.KERAS_MODEL:
+            self.model.save(model_path)
 
     def load_model(self, model_path, model_type):
         if model_type == self.SKLEARN_MODEL:
             with open(model_path, "rb") as model_file:
                 self.model = pickle.load(model_file)
+        elif model_type == self.KERAS_MODEL:
+            self.model = load_model(model_path)
 
     @staticmethod
     def save_models_data(models_data, saved_model_dir):

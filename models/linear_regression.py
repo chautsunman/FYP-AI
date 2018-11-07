@@ -39,7 +39,7 @@ class LinearRegression(Model):
         # load models data
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
-            models_data = {"models": []}
+            models_data = {"models": [], "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
