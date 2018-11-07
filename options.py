@@ -1,32 +1,45 @@
 import numpy as np
 
-class Option(Object):
-    #base class
-    def __init__(self):
-        pass
+class DiscreteOption(Object):
+    #option_config = {options:[1,2,3,4]}
+
+    TYPE = "discrete"
+
+    @staticmethod
+    def rand(option_config):
+        return np.random.choice(option_config["options"])
+
+    @staticmethod
+    def mutate(option, option_config):
+        return DiscreteOption.rand(option_config)
     
-    def rand(self):
-        pass
+class ContinuousOption(Object):
+    #option_config = {range:[1,10]}
 
-    def mutate(self, option):
-        pass
+    TYPE = "continuous"
 
-class DiscreteOption(Option):
-    def __init__(self, options):
-        self.options = options
+    @staticmethod
+    def rand(option_config):
+        return np.random.rand() * (option_config["range"][1] - option_config["range"][0]) + option_config["range"][0]
 
-    def rand(self):
-        return np.random.choice(self.options)
+    @staticmethod
+    def mutate(option, option_config):
+        ranNum = np.random.randn()
+        if (option + ranNum) > option_config["range"][1]:
+            return option_config["range"][1]
+        elif (option + ranNum) < option_config["range"][0]:
+            return option_config["range"][0]
+        else:
+            return option + ranNum
 
-    def mutate(self, option):
-        return self.rand()
-    
-class ContinuousOption(Option):
-    def __init__(self, range_options):
-        self.range_options = range_options
+def rand(option_type, option_config):
+    if option_type == DiscreteOption.TYPE:
+        return DiscreteOption.rand(option_config)
+    elif option_type == ContinuousOption.TYPE:
+        return ContinuousOption.rand(option_config)
 
-    def rand(self):
-        return np.random.rand() * (self.range_options[1] - self.range_options[0]) + self.range_options[0]
-
-    def mutate(self, option):
-        return option + np.random.randn()
+def mutate(option_type, option, option_config):
+    if option_type == DiscreteOption.TYPE:
+        return DiscreteOption.mutate(option, option_config)
+    elif option_type == ContinuousOption.TYPE:
+        return ContinuousOption.mutate(option, option_config)
