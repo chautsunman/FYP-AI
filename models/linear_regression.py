@@ -5,7 +5,7 @@ from sklearn import linear_model
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from model import Model
+from models.model import Model
 
 class LinearRegression(Model):
     MODEL = "linear_regression"

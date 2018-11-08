@@ -7,7 +7,7 @@ from sklearn import linear_model
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from index_regression import IndexRegressionModel
+from models.index_regression import IndexRegressionModel
 
 class LinearIndexRegression(IndexRegressionModel):
     MODEL = "linear_index_regression"

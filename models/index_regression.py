@@ -1,4 +1,4 @@
-from model import Model
+from models.model import Model
 
 class IndexRegressionModel(Model):
     def __init__(self, model_options):
