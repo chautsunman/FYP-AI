@@ -16,10 +16,10 @@ def train_models(train_models_data):
 
     for train_model_data in train_models_data:
         if train_model_data["model"] == LinearRegression.MODEL:
-            model = LinearRegression(train_model_data["modelOptions"])
+            model = LinearRegression(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
 
         elif train_model_data["model"] == SupportVectorRegression.MODEL:
-            model = SupportVectorRegression(train_model_data["modelOptions"])
+            model = SupportVectorRegression(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
 
         elif train_model_data["model"] == LinearIndexRegression.MODEL:
             model = LinearIndexRegression(train_model_data["modelOptions"])
@@ -40,7 +40,7 @@ def train_models(train_models_data):
             model.save("./saved_models/svr_index_regression")
 
         elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
-            model = DenseNeuralNetwork(train_model_data)
+            model = DenseNeuralNetwork(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
 
             stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
 
