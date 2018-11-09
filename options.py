@@ -38,8 +38,22 @@ def rand(option_type, option_config):
     elif option_type == ContinuousOption.TYPE:
         return ContinuousOption.rand(option_config)
 
-def mutate(option_type, option, option_config):
-    if option_type == DiscreteOption.TYPE:
-        return DiscreteOption.mutate(option, option_config)
-    elif option_type == ContinuousOption.TYPE:
-        return ContinuousOption.mutate(option, option_config)
+def mutate(option_type, option, option_config, probability=0.2):
+    if np.random.rand() < probability: 
+        if option_type == DiscreteOption.TYPE:
+            return DiscreteOption.mutate(option, option_config)
+        elif option_type == ContinuousOption.TYPE:
+            return ContinuousOption.mutate(option, option_config)
+
+def rand_all(configs):
+    results = {}
+    for key in configs:
+        results[key] = rand(configs[key]["type"],configs[key]["option_config"])
+    return results
+
+def mutate_all(options, configs, probability=0.2):
+    results = {}
+    for key in configs:
+        results[key] = mutate(configs[key]["type"],options[key],configs[key]["option_config"], probability)
+    return results
+    
