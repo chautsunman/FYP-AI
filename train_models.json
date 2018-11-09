@@ -2,26 +2,47 @@
     "models": [
         {
             "model": "linear",
-            "stock_code": "GOOGL",
-            "use_stock_price": false,
-            "n": 30
+            "input_options": {
+                "target": "GOOGL",
+                "column": "adjusted_close",
+                "stock_codes": [ "GOOGL" ],
+                "config": [
+                    {
+                        "column": "index",
+                        "n": 30
+                    }
+                ]
+            }
         },
         {
             "model": "svr",
-            "stock_code": "GOOGL",
-            "use_stock_price": false,
-            "n": 30,
-            "kernel": "rbf",
-            "degree": 3,
-            "gamma": "auto",
-            "coef0": 0.0,
-            "tol": 0.001,
-            "C": 1.0,
-            "epsilon": 0.1,
-            "shrinking": true,
-            "cache_size": 500.0,
-            "verbose": false,
-            "max_iter": -1
+            "input_options": {
+                "target": "GOOGL",
+                "column": "adjusted_close",
+                "stock_codes": [ "GOOGL" ],
+                "config": [
+                    {
+                        "column": "index",
+                        "n": 30
+                    }
+                ]
+            },
+            "model_options": {
+                "stock_code": "GOOGL",
+                "use_stock_price": false,
+                "n": 30,
+                "kernel": "rbf",
+                "degree": 3,
+                "gamma": "auto",
+                "coef0": 0.0,
+                "tol": 0.001,
+                "C": 1.0,
+                "epsilon": 0.1,
+                "shrinking": true,
+                "cache_size": 500.0,
+                "verbose": false,
+                "max_iter": -1
+            }
         },
         {
             "model": "svr",
@@ -42,11 +63,24 @@
         },
         {
             "model": "dnn",
-            "stock_code": "GOOGL",
-            "use_stock_price": false,
             "n": 1000,
-            "lookback": 10,
-            "net": {
+            "input_options": {
+                "column": "adjusted_close",
+                "stock_codes": [ "GOOGL" ],
+                "config": [
+                    {
+                        "column": "adjusted_close",
+                        "type": "lookback",
+                        "n": 10
+                    },
+                    {
+                        "column": "adjusted_close",
+                        "type": "moving_avg",
+                        "n": "3"
+                    }
+                ]
+            },
+            "model_options": {
                 "name": "12-6-1-net",
                 "layers": [
                     {
