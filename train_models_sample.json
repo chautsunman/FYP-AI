@@ -24,16 +24,16 @@
         },
         {
             "model": "linear_index_regression",
+            "stock_code": "GOOGL",
             "modelOptions": {
-                "stock_code": "GOOGL",
                 "use_stock_price": false,
                 "n": 30
             }
         },
         {
             "model": "svr_index_regression",
+            "stock_code": "GOOGL",
             "modelOptions": {
-                "stock_code": "GOOGL",
                 "use_stock_price": false,
                 "n": 30,
                 "kernel": "rbf",

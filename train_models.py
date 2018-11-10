@@ -22,7 +22,7 @@ def train_models(train_models_data):
             model = SupportVectorRegression(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
 
         elif train_model_data["model"] == LinearIndexRegression.MODEL:
-            model = LinearIndexRegression(train_model_data["modelOptions"])
+            model = LinearIndexRegression(train_model_data["modelOptions"], train_model_data["stock_code"])
 
             stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
 
@@ -31,7 +31,7 @@ def train_models(train_models_data):
             model.save("./saved_models/linear_index_regression")
 
         elif train_model_data["model"] == SupportVectorIndexRegression.MODEL:
-            model = SupportVectorIndexRegression(train_model_data["modelOptions"])
+            model = SupportVectorIndexRegression(train_model_data["modelOptions"], train_model_data["stock_code"])
 
             stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
 
