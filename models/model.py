@@ -9,9 +9,10 @@ class Model:
     SKLEARN_MODEL = "sklearn"
     KERAS_MODEL = "keras"
 
-    def __init__(self, model_options):
+    def __init__(self, model_options, stock_code=None):
         self.model = None
         self.model_options = model_options
+        self.stock_code = stock_code
 
     def train(self):
         return
@@ -23,6 +24,8 @@ class Model:
         return
 
     def save_model(self, model_path, model_type):
+        self.create_model_dir(model_path)
+
         if model_type == self.SKLEARN_MODEL:
             with open(model_path, "wb") as model_file:
                 pickle.dump(self.model, model_file)

@@ -1,8 +1,8 @@
-from model import Model
+from models.model import Model
 
 class IndexRegressionModel(Model):
-    def __init__(self, model_options):
-        Model.__init__(self, model_options)
+    def __init__(self, model_options, stock_code):
+        Model.__init__(self, model_options, stock_code=stock_code)
 
     def train(self, stock_prices):
         pass

@@ -2,10 +2,12 @@
     "models": [
         {
             "model": "linear_regression",
+            "stockCode": "GOOGL",
             "modelOptions": {}
         },
         {
             "model": "svr",
+            "stockCode": "GOOGL",
             "modelOptions": {
                 "kernel": "rbf",
                 "degree": 3,
@@ -22,16 +24,16 @@
         },
         {
             "model": "linear_index_regression",
+            "stock_code": "GOOGL",
             "modelOptions": {
-                "stock_code": "GOOGL",
                 "use_stock_price": false,
                 "n": 30
             }
         },
         {
             "model": "svr_index_regression",
+            "stock_code": "GOOGL",
             "modelOptions": {
-                "stock_code": "GOOGL",
                 "use_stock_price": false,
                 "n": 30,
                 "kernel": "rbf",
@@ -49,6 +51,7 @@
         },
         {
             "model": "dnn",
+            "stockCode": "GOOGL",
             "modelOptions": {
                 "stock_code": "GOOGL",
                 "use_stock_price": true,

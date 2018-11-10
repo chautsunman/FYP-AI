@@ -1,19 +1,17 @@
-import pickle
-import json
+from os import path
 import time
-import os
 
 from sklearn.svm import SVR
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from index_regression import IndexRegressionModel
+from models.index_regression import IndexRegressionModel
 
 class SupportVectorIndexRegression(IndexRegressionModel):
     MODEL = "svr_index_regression"
 
-    def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
-        IndexRegressionModel.__init__(self, model_options)
+    def __init__(self, model_options, stock_code, load=False, saved_model_dir=None, saved_model_path=None):
+        IndexRegressionModel.__init__(self, model_options, stock_code)
 
         # Please check scipy SVR documentation for details
         if not load or saved_model_dir is None:
@@ -33,9 +31,7 @@ class SupportVectorIndexRegression(IndexRegressionModel):
         else:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
-                with open(saved_model_dir + "/" + model_path, "rb") as model_file:
-                    print(model_path)
-                    self.model = pickle.load(model_file)
+                self.load_model(path.join(saved_model_dir, model_path), self.SKLEARN_MODEL)
 
     def train(self, stock_prices):
         x = np.arange(self.model_options["n"]).reshape(-1, 1)
@@ -64,82 +60,77 @@ class SupportVectorIndexRegression(IndexRegressionModel):
         return predictions
 
     def save(self, saved_model_dir):
-        self.create_model_dir(self, saved_model_dir + "/" + self.model_options["stock_code"])
+        # create the saved models directory
+        self.create_model_dir(self, saved_model_dir)
 
         model_name = self.get_model_name()
-        model_path = self.model_options["stock_code"] + "/" + model_name
+        model_path = path.join(self.stock_code, self.get_model_type_hash())
 
-        with open(saved_model_dir + "/" + model_path, "wb") as model_file:
-            pickle.dump(self.model, model_file)
+        # save the model
+        self.save_model(path.join(saved_model_dir, model_path, model_name), self.SKLEARN_MODEL)
 
-        if os.path.isfile(saved_model_dir + "/" + "models_data.json"):
-            with open(saved_model_dir + "/" + "models_data.json", "r") as models_data_file:
-                models_data = json.load(models_data_file)
-        else:
-            models_data = {"models": {}}
+        # load models data
+        models_data = self.load_models_data(saved_model_dir)
+        if models_data is None:
+            models_data = {"models": [], "modelTypes": {}}
 
-        if self.model_options["stock_code"] not in models_data["models"]:
-            models_data["models"][self.model_options["stock_code"]] = {}
+        # update models data
+        models_data = self.update_models_data(models_data, model_name, model_path)
 
-        model_type = self.get_model_type()
+        # save models data
+        self.save_models_data(models_data, saved_model_dir)
 
-        if model_type not in models_data["models"][self.model_options["stock_code"]]:
-            models_data["models"][self.model_options["stock_code"]][model_type] = []
+    def update_models_data(self, models_data, model_name, model_path):
+        if self.stock_code not in models_data["models"]:
+            models_data["models"]["stock_code"] = {}
 
-        model_data = self.model_options
+        model_type_hash = self.get_model_type_hash()
+
+        if model_type_hash not in models_data["models"][self.stock_code]:
+            models_data["models"][self.stock_code][model_type_hash] = []
+
+        model_data = {}
         model_data["model_name"] = model_name
         model_data["model_path"] = model_path
+        model_data["model"] = self.MODEL
 
-        models_data["models"][self.model_options["stock_code"]][model_type].append(model_data)
+        models_data["models"][self.stock_code][model_type_hash].append(model_data)
 
-        with open(saved_model_dir + "/" + "models_data.json", "w") as models_data_file:
-            json.dump(models_data, models_data_file, indent=4)
+        if model_type_hash not in models_data["modelTypes"]:
+            models_data["modelTypes"][model_type_hash] = self.get_model_type()
+
+        return models_data
 
     def get_model_type(self):
-        model_type = []
-        model_type.append(str(self.model_options["n"]) + "days")
-        model_type.append(str(self.model_options["kernel"]))
-        model_type.append("degree" + str(self.model_options["degree"]))
-        model_type.append("C" + str(self.model_options["C"]))
-        model_type.append("gamma" + str(self.model_options["gamma"]))
-        model_type.append("coef0" + str(self.model_options["coef0"]))
-        model_type.append("tol" + str(self.model_options["tol"]))
-        model_type.append("epsilon" + str(self.model_options["epsilon"]))
-        model_type.append("shrinking" + str(self.model_options["shrinking"]))
-        model_type.append("cache_size" + str(self.model_options["cache_size"]))
-        model_type.append("verbose" + str(self.model_options["verbose"]))
-        model_type.append("max_iter" + str(self.model_options["max_iter"]))
-        model_type.append("change" if not self.model_options["use_stock_price"] else "price")
-        return "_".join(model_type)
+        return {"model": self.MODEL, "modelOptions": self.model_options}
+
+    def get_model_type_hash(self):
+        model_type = self.get_model_type()
+
+        model_type_json_str = self.get_json_str(model_type)
+
+        return self.hash_str(model_type_json_str)
 
     def get_model_name(self):
         model_name = []
-        model_name.append(self.get_model_type())
+        model_name.append(self.get_model_type_hash())
         model_name.append(str(int(time.time())))
         return "_".join(model_name) + ".model"
 
     def get_saved_model_path(self, saved_model_dir):
-        if not os.path.isfile(saved_model_dir + "/" + "models_data.json"):
-            print("No models_data.json")
+        models_data = self.load_models_data(saved_model_dir)
+        if models_data is None:
             return None
 
-        with open(saved_model_dir + "/" + "models_data.json", "r") as models_data_file:
-            models_data = json.load(models_data_file)
-
-        if self.model_options["stock_code"] not in models_data["models"]:
-            print("No stock code")
+        if self.stock_code not in models_data["models"]:
             return None
 
-        model_type = self.get_model_type()
+        model_type_hash = self.get_model_type_hash()
 
-        print(models_data)
-        print(model_type)
-
-        if model_type not in models_data["models"][self.model_options["stock_code"]]:
-            print("No model type")
+        if model_type_hash not in models_data["models"]:
             return None
 
-        return models_data["models"][self.model_options["stock_code"]][model_type][-1]["model_path"]
+        return models_data["models"][self.stock_code][model_type_hash][-1]["model_path"]
 
     # Return the name of the model in displayable format
     def get_model_display_name(self):
@@ -155,24 +146,22 @@ class SupportVectorIndexRegression(IndexRegressionModel):
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
 
-def get_all_predictions(stock_code, saved_model_dir, last_price):
-    with open(saved_model_dir + "/models_data.json", "r") as models_data_file:
-        models_data = json.load(models_data_file)
+    @staticmethod
+    def get_all_models(stock_code, saved_model_dir, last_price):
+        models_data = Model.load_models_data(saved_model_dir)
+        if models_data is None:
+            return None
 
-    if stock_code not in models_data["models"]:
-        return [], []
+        if stock_code not in models_data["models"]:
+            return None
 
-    models_data = models_data["models"][stock_code]
+        models = []
+        for model_type in models_data["models"][stock_code]:
+            models.append(SupportVectorIndexRegression(
+                models_data["modelTypes"][model_type]["modelOptions"],
+                stock_code,
+                load=True,
+                saved_model_dir=saved_model_dir,
+                saved_model_path=models_data["models"][stock_code][model_type][-1]["model_path"]))
 
-    models = []
-    for _, model_options in models_data.items():
-        models.append(SupportVectorIndexRegression(model_options[-1], load=True, saved_model_dir=saved_model_dir, saved_model_path=model_options[-1]["model_path"]))
-
-    predictions = []
-    for model in models:
-        if not model.model_options["use_stock_price"]:
-            predictions.append(model.predict(last_price))
-        else:
-            predictions.append(model.predict())
-
-    return predictions, models
+        return models

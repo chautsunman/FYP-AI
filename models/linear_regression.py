@@ -5,13 +5,13 @@ from sklearn import linear_model
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from model import Model
+from models.model import Model
 
 class LinearRegression(Model):
     MODEL = "linear_regression"
 
-    def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
-        Model.__init__(self, model_options)
+    def __init__(self, model_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
+        Model.__init__(self, model_options, stock_code=stock_code)
 
         if not load or saved_model_dir is None:
             self.model = linear_model.LinearRegression()
@@ -31,7 +31,8 @@ class LinearRegression(Model):
         self.create_model_dir(self, saved_model_dir)
 
         model_name = self.get_model_name()
-        model_path = self.get_model_type_hash()
+        stock_code = "general" if self.stock_code is None else self.stock_code
+        model_path = path.join(self.get_model_type_hash(), stock_code)
 
         # save the model
         self.save_model(path.join(saved_model_dir, model_path, model_name), self.SKLEARN_MODEL)
@@ -51,7 +52,12 @@ class LinearRegression(Model):
         model_type_hash = self.get_model_type_hash()
 
         if model_type_hash not in models_data["models"]:
-            models_data["models"][model_type_hash] = []
+            models_data["models"][model_type_hash] = {"general": []}
+
+        stock_code = "general" if self.stock_code is None else self.stock_code
+
+        if stock_code not in models_data["models"][model_type_hash]:
+            models_data["models"][model_type_hash][stock_code] = []
 
         model_data = {}
         model_data["model_name"] = model_name
@@ -91,7 +97,12 @@ class LinearRegression(Model):
         if model_type_hash not in models_data["models"]:
             return None
 
-        return models_data["models"][model_type_hash][-1]["model_path"]
+        stock_code = "general" if self.stock_code is None else self.stock_code
+
+        if stock_code not in models_data["models"][model_type_hash][stock_code]:
+            return None
+
+        return models_data["models"][model_type_hash][stock_code][-1]["model_path"]
 
     def get_model_display_name(self):
         return "Linear Regression"
@@ -100,21 +111,24 @@ class LinearRegression(Model):
         return mean_squared_error(y_true, y_pred)
 
     @staticmethod
-    def get_all_predictions(stock_code, saved_model_dir):
+    def get_all_models(stock_code, saved_model_dir):
         models_data = Model.load_models_data(saved_model_dir)
         if models_data is None:
             return None
 
         models = []
-        for model_type, model_data in models_data["models"].items():
+        for model_type in models_data["models"]:
             models.append(LinearRegression(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                stock_code=stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,
-                saved_model_path=model_data[-1]["model_path"]))
+                saved_model_path=models_data["models"][model_type]["general"][-1]["model_path"]))
+            models.append(LinearRegression(
+                models_data["modelTypes"][model_type]["modelOptions"],
+                stock_code=stock_code,
+                load=True,
+                saved_model_dir=saved_model_dir,
+                saved_model_path=models_data["models"][model_type][stock_code][-1]["model_path"]))
 
-        predictions = []
-        for model in models:
-            predictions.append(np.array([]))
-
-        return predictions, models
+        return models
