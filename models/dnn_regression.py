@@ -167,7 +167,7 @@ class DenseNeuralNetwork(Model):
         return "Dense Neural Network (%s)" % " ".join(options_name)
 
     @staticmethod
-    def get_all_predictions(stock_code, saved_model_dir):
+    def get_all_models(stock_code, saved_model_dir):
         models_data = Model.load_models_data(saved_model_dir)
         if models_data is None:
             return None
@@ -187,8 +187,4 @@ class DenseNeuralNetwork(Model):
                 saved_model_dir=saved_model_dir,
                 saved_model_path=models_data["models"][model_type][stock_code][-1]["model_path"]))
 
-        predictions = []
-        for model in models:
-            predictions.append(np.array([]))
-
-        return predictions, models
+        return models
