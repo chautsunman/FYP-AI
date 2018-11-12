@@ -42,8 +42,8 @@ class DenseNeuralNetwork(Model):
         #self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
         self.model.compile(loss=net["loss"], optimizer=net["optimizer"], metrics=net["metrics"])
 
-    def __init__(self, model_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
-        Model.__init__(self, model_options, stock_code=stock_code)
+    def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
+        Model.__init__(self, model_options, input_options, stock_code=stock_code)
 
         if not load or saved_model_dir is None:
             self.build_model()
@@ -127,7 +127,7 @@ class DenseNeuralNetwork(Model):
 
     # Configuration options for a particular model
     def get_model_type(self):
-        return {"model": self.MODEL, "modelOptions": self.model_options}
+        return {"model": self.MODEL, "modelOptions": self.model_options, "inputOptions": self.input_options}
 
     def get_model_type_hash(self):
         model_type = self.get_model_type()
@@ -176,12 +176,14 @@ class DenseNeuralNetwork(Model):
         for model_type in models_data["models"]:
             models.append(DenseNeuralNetwork(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
                 stock_code=stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,
                 saved_model_path=models_data["models"][model_type]["general"][-1]["model_path"]))
             models.append(DenseNeuralNetwork(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
                 stock_code=stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,

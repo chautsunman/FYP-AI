@@ -9,9 +9,10 @@ class Model:
     SKLEARN_MODEL = "sklearn"
     KERAS_MODEL = "keras"
 
-    def __init__(self, model_options, stock_code=None):
+    def __init__(self, model_options, input_options, stock_code=None):
         self.model = None
         self.model_options = model_options
+        self.input_options = input_options
         self.stock_code = stock_code
 
     def train(self):

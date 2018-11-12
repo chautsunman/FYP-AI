@@ -10,8 +10,8 @@ from models.index_regression import IndexRegressionModel
 class LinearIndexRegression(IndexRegressionModel):
     MODEL = "linear_index_regression"
 
-    def __init__(self, model_options, stock_code, load=False, saved_model_dir=None, saved_model_path=None):
-        IndexRegressionModel.__init__(self, model_options, stock_code)
+    def __init__(self, model_options, input_options, stock_code, load=False, saved_model_dir=None, saved_model_path=None):
+        IndexRegressionModel.__init__(self, model_options, input_options, stock_code)
 
         if not load or saved_model_dir is None:
             self.model = linear_model.LinearRegression()
@@ -81,7 +81,7 @@ class LinearIndexRegression(IndexRegressionModel):
         return models_data
 
     def get_model_type(self):
-        return {"model": self.MODEL, "modelOptions": self.model_options}
+        return {"model": self.MODEL, "modelOptions": self.model_options, "inputOptions": self.input_options}
 
     def get_model_type_hash(self):
         model_type = self.get_model_type()
@@ -131,6 +131,7 @@ class LinearIndexRegression(IndexRegressionModel):
         for model_type in models_data["models"][stock_code]:
             models.append(LinearIndexRegression(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
                 stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,

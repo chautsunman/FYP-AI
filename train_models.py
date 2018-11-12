@@ -28,15 +28,15 @@ def train_models(train_models_data):
     for train_model_data in train_models_data:
         # initialize the model
         if train_model_data["model"] == LinearRegression.MODEL:
-            model = LinearRegression(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
+            model = LinearRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
         elif train_model_data["model"] == SupportVectorRegression.MODEL:
-            model = SupportVectorRegression(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
+            model = SupportVectorRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
         elif train_model_data["model"] == LinearIndexRegression.MODEL:
-            model = LinearIndexRegression(train_model_data["modelOptions"], train_model_data["stock_code"])
+            model = LinearIndexRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], train_model_data["stock_code"])
         elif train_model_data["model"] == SupportVectorIndexRegression.MODEL:
-            model = SupportVectorIndexRegression(train_model_data["modelOptions"], train_model_data["stock_code"])
+            model = SupportVectorIndexRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], train_model_data["stock_code"])
         elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
-            model = DenseNeuralNetwork(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
+            model = DenseNeuralNetwork(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
 
         # prepare the data and train the model
         x, y = build_dataset(train_model_data["inputOptions"], True)
