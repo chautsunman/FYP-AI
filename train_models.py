@@ -39,12 +39,8 @@ def train_models(train_models_data):
             model = DenseNeuralNetwork(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
 
         # prepare the data and train the model
-        if train_model_data["model"] not in [LinearIndexRegression.MODEL, SupportVectorIndexRegression.MODEL]:
-            x, y = build_dataset(train_model_data["inputOptions"], True)
-            model.train(x, y)
-        else:
-            stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
-            model.train(stock_prices)
+        x, y = build_dataset(train_model_data["inputOptions"], True)
+        model.train(x, y)
 
         # save the model
         model.save(SAVED_MODELS_DIR_MAP[train_model_data["model"]])
