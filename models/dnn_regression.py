@@ -30,7 +30,7 @@ class DenseNeuralNetwork(Model):
         # Specify the neural network configuration
         for layer in net["layers"]:
             if "is_input" in layer and layer["is_input"]:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(self.model_options["lookback"],)))
+                self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(layer["inputUnits"],)))
             elif "is_output" in layer and layer["is_output"]:
                 self.model.add(Dense(units=1, activation=layer["activation"]))
             else:
@@ -75,7 +75,7 @@ class DenseNeuralNetwork(Model):
 
     # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
-        self.create_model_dir(self, path.join(saved_model_dir, self.model_options["stock_code"]))
+        self.create_model_dir(saved_model_dir)
 
         # Get the model name
         model_name = self.get_model_name()
@@ -93,7 +93,7 @@ class DenseNeuralNetwork(Model):
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
             # Create a new one if there is no configuration file for DNN yet
-            models_data = {"models": [], "modelTypes": {}}
+            models_data = {"models": {}, "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
@@ -118,7 +118,7 @@ class DenseNeuralNetwork(Model):
         model_data["model_path"] = model_path
         model_data["model"] = self.MODEL
 
-        models_data["models"][model_type_hash].append(model_data)
+        models_data["models"][model_type_hash][stock_code].append(model_data)
 
         if model_type_hash not in models_data["modelTypes"]:
             models_data["modelTypes"][model_type_hash] = self.get_model_type()
@@ -142,7 +142,7 @@ class DenseNeuralNetwork(Model):
         model_name = []
         model_name.append(self.get_model_type_hash())
         model_name.append(str(int(time.time())))
-        return "_".join(model_name) + ".model"
+        return "_".join(model_name) + ".h5"
 
     def get_saved_model_path(self, saved_model_dir):
         models_data = self.load_models_data(saved_model_dir)
