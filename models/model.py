@@ -24,7 +24,7 @@ class Model:
         return
 
     def save_model(self, model_path, model_type):
-        self.create_model_dir(model_path)
+        self.create_model_dir(path.dirname(model_path))
 
         if model_type == self.SKLEARN_MODEL:
             with open(model_path, "wb") as model_file:
@@ -53,7 +53,7 @@ class Model:
             return None
 
     @staticmethod
-    def create_model_dir(self, model_dir_path):
+    def create_model_dir(model_dir_path):
         if not path.isdir(model_dir_path):
             makedirs(model_dir_path)
 

@@ -1,6 +1,6 @@
 import argparse
 import json
-import os
+from os import path, makedirs
 
 import pandas as pd
 
@@ -10,43 +10,44 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
+from build_dataset import build_dataset
+
+SAVED_MODELS_DIR = path.join(".", "saved_models")
+SAVED_MODELS_DIR_MAP = {
+    LinearRegression.MODEL: path.join(SAVED_MODELS_DIR, "linear_regression"),
+    SupportVectorRegression.MODEL: path.join(SAVED_MODELS_DIR, "svr"),
+    LinearIndexRegression.MODEL: path.join(SAVED_MODELS_DIR, "linear_index_regression"),
+    SupportVectorIndexRegression.MODEL: path.join(SAVED_MODELS_DIR, "svr_index_regression"),
+    DenseNeuralNetwork.MODEL: path.join(SAVED_MODELS_DIR, "dnn")
+}
+
 def train_models(train_models_data):
-    if not os.path.isdir("./saved_models"):
-        os.makedirs("./saved_models")
+    if not path.isdir(SAVED_MODELS_DIR):
+        makedirs(SAVED_MODELS_DIR)
 
     for train_model_data in train_models_data:
+        # initialize the model
         if train_model_data["model"] == LinearRegression.MODEL:
-            model = LinearRegression(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
-
+            model = LinearRegression(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
         elif train_model_data["model"] == SupportVectorRegression.MODEL:
-            model = SupportVectorRegression(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
-
+            model = SupportVectorRegression(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
         elif train_model_data["model"] == LinearIndexRegression.MODEL:
             model = LinearIndexRegression(train_model_data["modelOptions"], train_model_data["stock_code"])
-
-            stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
-
-            model.train(stock_prices)
-
-            model.save("./saved_models/linear_index_regression")
-
         elif train_model_data["model"] == SupportVectorIndexRegression.MODEL:
             model = SupportVectorIndexRegression(train_model_data["modelOptions"], train_model_data["stock_code"])
-
-            stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
-
-            model.train(stock_prices)
-
-            model.save("./saved_models/svr_index_regression")
-
         elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
-            model = DenseNeuralNetwork(train_model_data["modelOptions"], stock_code=train_model_data["stock_code"])
+            model = DenseNeuralNetwork(train_model_data["modelOptions"], stock_code=train_model_data["stockCode"])
 
+        # prepare the data and train the model
+        if train_model_data["model"] not in [LinearIndexRegression.MODEL, SupportVectorIndexRegression.MODEL]:
+            x, y = build_dataset(train_model_data["inputOptions"], True)
+            model.train(x, y)
+        else:
             stock_prices = pd.read_csv("./data/stock_prices/" + train_model_data["modelOptions"]["stock_code"] + ".csv", nrows=train_model_data["modelOptions"]["n"])
-
             model.train(stock_prices)
 
-            model.save("./saved_models/dnn")
+        # save the model
+        model.save(SAVED_MODELS_DIR_MAP[train_model_data["model"]])
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train models.")

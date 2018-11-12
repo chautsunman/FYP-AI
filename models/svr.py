@@ -41,7 +41,7 @@ class SupportVectorRegression(Model):
 
     def save(self, saved_model_dir):
         # create the saved models directory
-        self.create_model_dir(self, saved_model_dir)
+        self.create_model_dir(saved_model_dir)
 
         model_name = self.get_model_name()
         stock_code = "general" if self.stock_code is None else self.stock_code
@@ -53,7 +53,7 @@ class SupportVectorRegression(Model):
         # load models data
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
-            models_data = {"models": [], "modelTypes": {}}
+            models_data = {"models": {}, "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
@@ -77,7 +77,7 @@ class SupportVectorRegression(Model):
         model_data["model_path"] = model_path
         model_data["model"] = self.MODEL
 
-        models_data["models"][model_type_hash].append(model_data)
+        models_data["models"][model_type_hash][stock_code].append(model_data)
 
         if model_type_hash not in models_data["modelTypes"]:
             models_data["modelTypes"][model_type_hash] = self.get_model_type()
