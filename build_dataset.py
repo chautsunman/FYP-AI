@@ -31,7 +31,7 @@ def build_dataset(input_config, training):
     if training:
         # Training
         if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
-            x = np.arange(1, input_config["config"][0]["n"] + 1)
+            x = np.arange(1, input_config["config"][0]["n"] + 1).reshape(-1, 1)
             y = y.iloc[-input_config["config"][0]["n"]:, 0].values
             return x, y
 

@@ -10,8 +10,8 @@ from models.index_regression import IndexRegressionModel
 class LinearIndexRegression(IndexRegressionModel):
     MODEL = "linear_index_regression"
 
-    def __init__(self, model_options, stock_code, load=False, saved_model_dir=None, saved_model_path=None):
-        IndexRegressionModel.__init__(self, model_options, stock_code)
+    def __init__(self, model_options, input_options, stock_code, load=False, saved_model_dir=None, saved_model_path=None):
+        IndexRegressionModel.__init__(self, model_options, input_options, stock_code)
 
         if not load or saved_model_dir is None:
             self.model = linear_model.LinearRegression()
@@ -20,13 +20,8 @@ class LinearIndexRegression(IndexRegressionModel):
             if model_path is not None:
                 self.load_model(path.join(saved_model_dir, model_path), self.SKLEARN_MODEL)
 
-    def train(self, stock_prices):
-        x = np.arange(self.model_options["n"]).reshape(-1, 1)
-
-        y = stock_prices["change" if not self.model_options["use_stock_price"] else "adjusted_close"]
-        y = np.flipud(y.values.reshape(-1, 1))
-
-        self.model.fit(x, y)
+    def train(self, xs, ys):
+        self.model.fit(xs, ys)
 
     def predict(self, last_price=None):
         if not self.model_options["use_stock_price"] and last_price is None:
@@ -45,7 +40,7 @@ class LinearIndexRegression(IndexRegressionModel):
 
     def save(self, saved_model_dir):
         # create the saved models directory
-        self.create_model_dir(self, saved_model_dir)
+        self.create_model_dir(saved_model_dir)
 
         model_name = self.get_model_name()
         model_path = path.join(self.stock_code, self.get_model_type_hash())
@@ -56,7 +51,7 @@ class LinearIndexRegression(IndexRegressionModel):
         # load models data
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
-            models_data = {"models": [], "modelTypes": {}}
+            models_data = {"models": {}, "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
@@ -66,7 +61,7 @@ class LinearIndexRegression(IndexRegressionModel):
 
     def update_models_data(self, models_data, model_name, model_path):
         if self.stock_code not in models_data["models"]:
-            models_data["models"]["stock_code"] = {}
+            models_data["models"][self.stock_code] = {}
 
         model_type_hash = self.get_model_type_hash()
 
@@ -86,7 +81,7 @@ class LinearIndexRegression(IndexRegressionModel):
         return models_data
 
     def get_model_type(self):
-        return {"model": self.MODEL, "modelOptions": self.model_options}
+        return {"model": self.MODEL, "modelOptions": self.model_options, "inputOptions": self.input_options}
 
     def get_model_type_hash(self):
         model_type = self.get_model_type()
@@ -136,6 +131,7 @@ class LinearIndexRegression(IndexRegressionModel):
         for model_type in models_data["models"][stock_code]:
             models.append(LinearIndexRegression(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
                 stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,

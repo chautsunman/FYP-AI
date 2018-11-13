@@ -10,8 +10,8 @@ from models.model import Model
 class LinearRegression(Model):
     MODEL = "linear_regression"
 
-    def __init__(self, model_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
-        Model.__init__(self, model_options, stock_code=stock_code)
+    def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
+        Model.__init__(self, model_options, input_options, stock_code=stock_code)
 
         if not load or saved_model_dir is None:
             self.model = linear_model.LinearRegression()
@@ -28,7 +28,7 @@ class LinearRegression(Model):
 
     def save(self, saved_model_dir):
         # create the saved models directory
-        self.create_model_dir(self, saved_model_dir)
+        self.create_model_dir(saved_model_dir)
 
         model_name = self.get_model_name()
         stock_code = "general" if self.stock_code is None else self.stock_code
@@ -40,7 +40,7 @@ class LinearRegression(Model):
         # load models data
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
-            models_data = {"models": [], "modelTypes": {}}
+            models_data = {"models": {}, "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
@@ -64,7 +64,7 @@ class LinearRegression(Model):
         model_data["model_path"] = model_path
         model_data["model"] = self.MODEL
 
-        models_data["models"][model_type_hash].append(model_data)
+        models_data["models"][model_type_hash][stock_code].append(model_data)
 
         if model_type_hash not in models_data["modelTypes"]:
             models_data["modelTypes"][model_type_hash] = self.get_model_type()
@@ -72,7 +72,7 @@ class LinearRegression(Model):
         return models_data
 
     def get_model_type(self):
-        return {"model": self.MODEL, "modelOptions": self.model_options}
+        return {"model": self.MODEL, "modelOptions": self.model_options, "inputOptions": self.input_options}
 
     def get_model_type_hash(self):
         model_type = self.get_model_type()
@@ -120,12 +120,14 @@ class LinearRegression(Model):
         for model_type in models_data["models"]:
             models.append(LinearRegression(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
                 stock_code=stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,
                 saved_model_path=models_data["models"][model_type]["general"][-1]["model_path"]))
             models.append(LinearRegression(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
                 stock_code=stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,

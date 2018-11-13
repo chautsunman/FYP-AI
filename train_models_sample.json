@@ -3,7 +3,16 @@
         {
             "model": "linear_regression",
             "stockCode": "GOOGL",
-            "modelOptions": {}
+            "modelOptions": {},
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                    {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
         },
         {
             "model": "svr",
@@ -20,14 +29,28 @@
                 "cache_size": 500.0,
                 "verbose": false,
                 "max_iter": -1
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                    {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
             }
         },
         {
             "model": "linear_index_regression",
             "stock_code": "GOOGL",
-            "modelOptions": {
-                "use_stock_price": false,
-                "n": 30
+            "modelOptions": {},
+            "inputOptions": {
+                "config": [
+                    {"type": "index_price", "n": 10}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
             }
         },
         {
@@ -47,16 +70,44 @@
                 "cache_size": 500.0,
                 "verbose": false,
                 "max_iter": -1
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "index_price", "n": 10}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
             }
         },
         {
             "model": "dnn",
             "stockCode": "GOOGL",
             "modelOptions": {
+                "net": {
+                    "layers": [
+                        {"units": 10, "activation": "relu", "is_input": true, "inputUnits": 10},
+                        {"units": 10, "activation": "relu"},
+                        {"is_output": true, "activation": null}
+                    ],
+                    "loss": "mse",
+                    "optimizer": "adam",
+                    "epochs": 1,
+                    "batch_size": 32,
+                    "metrics": ["accuracy"],
+                    "evaluation_criteria": {
+                        "minimize": true,
+                        "threshold": 10
+                    }
+                }
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "stock_codes": ["GOOGL"],
                 "stock_code": "GOOGL",
-                "use_stock_price": true,
-                "n": 1000,
-                "lookback": 30
+                "column": "adjusted_close"
             }
         }
     ]
