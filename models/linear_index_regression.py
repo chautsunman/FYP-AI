@@ -3,11 +3,12 @@ import json
 import time
 import os
 
+import pandas as pd
 from sklearn import linear_model
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from index_regression import IndexRegressionModel
+from models.index_regression import IndexRegressionModel
 
 class LinearIndexRegression(IndexRegressionModel):
     MODEL = "linear_index_regression"
@@ -113,6 +114,33 @@ class LinearIndexRegression(IndexRegressionModel):
 
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
+
+    @staticmethod
+    def calculate_average_mean_squared_error(model_options, data_dir):
+
+        stock_prices = pd.read_csv (data_dir + '\\stock_prices\\' + model_options["stock_code"] + '.csv')
+        cleaned_prices = stock_prices
+
+        i = 0
+        n = model_options["n"]
+        error_sum = 0
+
+        while i < cleaned_prices.shape[0] - n + 1:
+            if i > 1: 
+                break
+            # create model
+            m = LinearIndexRegression(model_options)
+
+            # prepare d1 to d10     
+            listY = cleaned_prices.iloc[i:i+n]
+
+            m.train(listY)
+            y_pred = m.predict()
+            prediction_length = y_pred.shape[0]
+            error_sum += m.error(cleaned_prices.loc[i + n : i + prediction_length + n - 1, "adjusted_close"].values, y_pred)
+            
+            i += 1
+        return error_sum/i
 
 def get_all_predictions(stock_code, saved_model_dir, last_price):
     with open(saved_model_dir + "/models_data.json", "r") as models_data_file:

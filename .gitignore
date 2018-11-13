@@ -7,3 +7,7 @@ credentials
 __pycache__
 
 env
+
+index_model_scoring.json
+index_model_scoring_linear.json
+/.vscode

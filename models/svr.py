@@ -5,7 +5,7 @@ from sklearn.svm import SVR
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
-from model import Model
+from models.model import Model
 
 class SupportVectorRegression(Model):
     MODEL = "svr"
