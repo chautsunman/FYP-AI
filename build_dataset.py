@@ -39,7 +39,7 @@ def build_dataset(input_config, training):
             if config['type'] == 'lookback':
                 X.append(build_lookback(stock_data[config['stock_code']][[config["column"]]], config["column"], config["n"]))
 
-            if config['type'] == 'moving_avg':
+            elif config['type'] == 'moving_avg':
                 X.append(build_moving_avg(stock_data[config['stock_code']][[config["column"]]], config["column"], config["n"]))
 
         data = y.join(X, how="inner")
@@ -48,21 +48,17 @@ def build_dataset(input_config, training):
 
     else:
         # Prediction
+        if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
+            predict_n = input_config["config"][0]["predict_n"] if "predict_n" in input_config["config"][0] else 1
+            return np.arange(
+                input_config["config"][0]["n"] + 1,
+                input_config["config"][0]["n"] + 1 + predict_n)
+
         for config in input_config['config']:
-            n = config['n']
-
-            stock_code = config['stock_code']
-            column = config['column']
-
             if config['type'] == 'lookback':
-                X.append(np.array([ np.sum(stock_data[stock_code].loc[-n:, column]) / n ]))
+                X.append(stock_data[config["stock_code"]][config["column"]][-config["n"]:].values.reshape(1, -1))
 
-            if config['type'] == 'moving_avg':
-                X.append((stock_data[stock_code].loc[-3:, column], n))
+            elif config['type'] == 'moving_avg':
+                X.append(np.array([[stock_data[config["stock_code"]][config["column"]][-config["n"]:].sum() / config["n"]]]))
 
-
-        input_len = map(lambda arr: arr.shape[1], X)
-        min_input_len = reduce(lambda a, b: min(a, b), input_len)
-
-        return np.concatenate(X).ravel()
-
+        return np.concatenate(X, axis=1)
