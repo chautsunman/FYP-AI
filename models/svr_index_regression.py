@@ -36,20 +36,8 @@ class SupportVectorIndexRegression(IndexRegressionModel):
     def train(self, xs, ys):
         self.model.fit(xs, ys)
 
-    def predict(self, last_price=None):
-        if not self.model_options["use_stock_price"] and last_price is None:
-            return None
-
-        x = np.arange(self.model_options["n"], self.model_options["n"] + 30).reshape(-1, 1)
-
-        predictions = self.model.predict(x).flatten()
-
-        if not self.model_options["use_stock_price"]:
-            predictions[0] = last_price * (1 + predictions[0])
-            for i in range(1, predictions.shape[0]):
-                predictions[i] = predictions[i - 1] * (1 + predictions[i])
-
-        return predictions
+    def predict(self, x):
+        return self.model.predict(x).flatten()
 
     def save(self, saved_model_dir):
         # create the saved models directory
@@ -126,21 +114,14 @@ class SupportVectorIndexRegression(IndexRegressionModel):
 
     # Return the name of the model in displayable format
     def get_model_display_name(self):
-
-        # check if the model uses stock prices or daily changes
-        if not self.model_options["use_stock_price"]:
-            data = "change"
-        else:
-            data = "price"
-
-        return "SVM Regression, Kernel = {} ({} days {})".format(self.model_options["kernel"], self.model_options["n"], data)
+        return "SVM Index Regression"
 
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
 
     @staticmethod
-    def get_all_models(stock_code, saved_model_dir, last_price):
-        models_data = Model.load_models_data(saved_model_dir)
+    def get_all_models(stock_code, saved_model_dir):
+        models_data = IndexRegressionModel.load_models_data(saved_model_dir)
         if models_data is None:
             return None
 
@@ -155,6 +136,9 @@ class SupportVectorIndexRegression(IndexRegressionModel):
                 stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,
-                saved_model_path=models_data["models"][stock_code][model_type][-1]["model_path"]))
+                saved_model_path=path.join(
+                    models_data["models"][stock_code][model_type][-1]["model_path"],
+                    models_data["models"][stock_code][model_type][-1]["model_name"])
+            ))
 
         return models

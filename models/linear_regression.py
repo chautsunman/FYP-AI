@@ -24,7 +24,7 @@ class LinearRegression(Model):
         self.model.fit(xs, ys)
 
     def predict(self, x):
-        return self.model.predict([x]).flatten()
+        return self.model.predict(x).flatten()
 
     def save(self, saved_model_dir):
         # create the saved models directory
@@ -118,19 +118,27 @@ class LinearRegression(Model):
 
         models = []
         for model_type in models_data["models"]:
-            models.append(LinearRegression(
-                models_data["modelTypes"][model_type]["modelOptions"],
-                models_data["modelTypes"][model_type]["inputOptions"],
-                stock_code=stock_code,
-                load=True,
-                saved_model_dir=saved_model_dir,
-                saved_model_path=models_data["models"][model_type]["general"][-1]["model_path"]))
-            models.append(LinearRegression(
-                models_data["modelTypes"][model_type]["modelOptions"],
-                models_data["modelTypes"][model_type]["inputOptions"],
-                stock_code=stock_code,
-                load=True,
-                saved_model_dir=saved_model_dir,
-                saved_model_path=models_data["models"][model_type][stock_code][-1]["model_path"]))
+            if len(models_data["models"][model_type]["general"]) > 0:
+                models.append(LinearRegression(
+                    models_data["modelTypes"][model_type]["modelOptions"],
+                    models_data["modelTypes"][model_type]["inputOptions"],
+                    stock_code=stock_code,
+                    load=True,
+                    saved_model_dir=saved_model_dir,
+                    saved_model_path=path.join(
+                        models_data["models"][model_type]["general"][-1]["model_path"],
+                        models_data["models"][model_type]["general"][-1]["model_name"])
+                ))
+            if len(models_data["models"][model_type][stock_code]) > 0:
+                models.append(LinearRegression(
+                    models_data["modelTypes"][model_type]["modelOptions"],
+                    models_data["modelTypes"][model_type]["inputOptions"],
+                    stock_code=stock_code,
+                    load=True,
+                    saved_model_dir=saved_model_dir,
+                    saved_model_path=path.join(
+                        models_data["models"][model_type][stock_code][-1]["model_path"],
+                        models_data["models"][model_type][stock_code][-1]["model_name"])
+                ))
 
         return models

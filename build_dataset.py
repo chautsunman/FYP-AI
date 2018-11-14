@@ -52,7 +52,7 @@ def build_dataset(input_config, training):
             predict_n = input_config["config"][0]["predict_n"] if "predict_n" in input_config["config"][0] else 1
             return np.arange(
                 input_config["config"][0]["n"] + 1,
-                input_config["config"][0]["n"] + 1 + predict_n)
+                input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
 
         for config in input_config['config']:
             if config['type'] == 'lookback':
