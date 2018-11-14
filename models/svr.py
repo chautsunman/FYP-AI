@@ -10,8 +10,8 @@ from models.model import Model
 class SupportVectorRegression(Model):
     MODEL = "svr"
 
-    def __init__(self, model_options, load=False, saved_model_dir=None, saved_model_path=None):
-        Model.__init__(self, model_options)
+    def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
+        Model.__init__(self, model_options, input_options, stock_code=stock_code)
 
         # Please check scipy SVR documentation for details
         if not load or saved_model_dir is None:
@@ -41,10 +41,11 @@ class SupportVectorRegression(Model):
 
     def save(self, saved_model_dir):
         # create the saved models directory
-        self.create_model_dir(self, saved_model_dir)
+        self.create_model_dir(saved_model_dir)
 
         model_name = self.get_model_name()
-        model_path = self.get_model_type_hash()
+        stock_code = "general" if self.stock_code is None else self.stock_code
+        model_path = path.join(self.get_model_type_hash(), stock_code)
 
         # save the model
         self.save_model(path.join(saved_model_dir, model_path, model_name), self.SKLEARN_MODEL)
@@ -52,7 +53,7 @@ class SupportVectorRegression(Model):
         # load models data
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
-            models_data = {"models": []}
+            models_data = {"models": {}, "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
@@ -64,14 +65,19 @@ class SupportVectorRegression(Model):
         model_type_hash = self.get_model_type_hash()
 
         if model_type_hash not in models_data["models"]:
-            models_data["models"][model_type_hash] = []
+            models_data["models"][model_type_hash] = {"general": []}
+
+        stock_code = "general" if self.stock_code is None else self.stock_code
+
+        if stock_code not in models_data["models"][model_type_hash]:
+            models_data["models"][model_type_hash][stock_code] = []
 
         model_data = {}
         model_data["model_name"] = model_name
         model_data["model_path"] = model_path
         model_data["model"] = self.MODEL
 
-        models_data["models"][model_type_hash].append(model_data)
+        models_data["models"][model_type_hash][stock_code].append(model_data)
 
         if model_type_hash not in models_data["modelTypes"]:
             models_data["modelTypes"][model_type_hash] = self.get_model_type()
@@ -79,7 +85,7 @@ class SupportVectorRegression(Model):
         return models_data
 
     def get_model_type(self):
-        return {"model": self.MODEL, "modelOptions": self.model_options}
+        return {"model": self.MODEL, "modelOptions": self.model_options, "inputOptions": self.input_options}
 
     def get_model_type_hash(self):
         model_type = self.get_model_type()
@@ -104,7 +110,12 @@ class SupportVectorRegression(Model):
         if model_type_hash not in models_data["models"]:
             return None
 
-        return models_data["models"][model_type_hash][-1]["model_path"]
+        stock_code = "general" if self.stock_code is None else self.stock_code
+
+        if stock_code not in models_data["models"][model_type_hash][stock_code]:
+            return None
+
+        return models_data["models"][model_type_hash][stock_code][-1]["model_path"]
 
     # Return the name of the model in displayable format
     def get_model_display_name(self):
@@ -114,21 +125,26 @@ class SupportVectorRegression(Model):
         return mean_squared_error(y_true, y_pred)
 
     @staticmethod
-    def get_all_predictions(stock_code, saved_model_dir):
+    def get_all_models(stock_code, saved_model_dir):
         models_data = Model.load_models_data(saved_model_dir)
         if models_data is None:
             return None
 
         models = []
-        for model_type, model_data in models_data["models"].items():
+        for model_type in models_data["models"]:
             models.append(SupportVectorRegression(
                 models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
+                stock_code=stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,
-                saved_model_path=model_data[-1]["model_path"]))
+                saved_model_path=models_data["models"][model_type]["general"][-1]["model_path"]))
+            models.append(SupportVectorRegression(
+                models_data["modelTypes"][model_type]["modelOptions"],
+                models_data["modelTypes"][model_type]["inputOptions"],
+                stock_code=stock_code,
+                load=True,
+                saved_model_dir=saved_model_dir,
+                saved_model_path=models_data["models"][model_type][stock_code][-1]["model_path"]))
 
-        predictions = []
-        for model in models:
-            predictions.append(np.array([]))
-
-        return predictions, models
+        return models

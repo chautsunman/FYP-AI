@@ -7,12 +7,28 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 
 def index_model_scoring(model_data):
-    if model_data["model"] == "linear_regression":
-        print ("Squared Error", LinearIndexRegression.calculate_average_mean_squared_error(model_data["modelOptions"], "./data"))
-    elif model_data["model"] == "svr":
-        print ("Squared Error SVM Index", SupportVectorIndexRegression.calculate_average_mean_squared_error(model_data["modelOptions"], "./data"))
+    
+    if model_data["model"] == LinearIndexRegression.MODEL:
+        error = LinearIndexRegression.calculate_average_mean_squared_error(
+            model_data["modelOptions"],
+            model_data["inputOptions"],
+            model_data["inputOptions"]["stock_code"],
+            2,
+            "./data")
+        print ("Squared Error", error)
+    elif model_data["model"] == SupportVectorIndexRegression.MODEL:
+        error = SupportVectorIndexRegression.calculate_average_mean_squared_error(
+            model_data["modelOptions"],
+            model_data["inputOptions"],
+            model_data["inputOptions"]["stock_code"],
+            2,
+            "./data")
+        print ("Squared Error SVM Index", error)
     else:
+        error = 0
         print ("Failed to locate model data. ")
+    
+    return error
     
 
 if __name__ == "__main__":
@@ -24,4 +40,6 @@ if __name__ == "__main__":
     with open("./" + args.train_models_json) as train_models_json_file:
         train_models_data = json.load(train_models_json_file)
 
-    index_model_scoring(train_models_data)
+    for model_data in train_models_data["models"]:
+        if model_data["model"] in [LinearIndexRegression.MODEL, SupportVectorIndexRegression.MODEL]:
+            error = index_model_scoring(model_data)
