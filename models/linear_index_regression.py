@@ -101,8 +101,7 @@ class LinearIndexRegression(IndexRegressionModel):
         return models_data["models"][self.stock_code][model_type_hash][-1]["model_path"]
 
     def get_model_display_name(self):
-        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price"]
-        return "Linear Regression (%s)" % " ".join(options_name)
+        return "Linear Index Regression"
 
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
@@ -138,7 +137,7 @@ class LinearIndexRegression(IndexRegressionModel):
         return error_sum/iteration_limit
 
     def get_all_models(stock_code, saved_model_dir, last_price):
-        models_data = Model.load_models_data(saved_model_dir)
+        models_data = IndexRegressionModel.load_models_data(saved_model_dir)
         if models_data is None:
             return None
 
@@ -153,6 +152,9 @@ class LinearIndexRegression(IndexRegressionModel):
                 stock_code,
                 load=True,
                 saved_model_dir=saved_model_dir,
-                saved_model_path=models_data["models"][stock_code][model_type][-1]["model_path"]))
+                saved_model_path=path.join(
+                    models_data["models"][stock_code][model_type][-1]["model_path"],
+                    models_data["models"][stock_code][model_type][-1]["model_name"])
+            ))
 
         return models

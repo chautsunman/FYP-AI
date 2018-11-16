@@ -51,7 +51,7 @@ class DenseNeuralNetwork(Model):
         else:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
-                self.load_model(path.join(saved_model_dir, model_path))
+                self.load_model(path.join(saved_model_dir, model_path), Model.KERAS_MODEL)
 
     def train(self, xs, ys):
         # Initialize the evaluation_metric to its threshold so that the model must be trained
@@ -71,7 +71,7 @@ class DenseNeuralNetwork(Model):
                 evaluation_metric = self.model.evaluate(xs, ys)[1]
 
     def predict(self, x):
-        return self.model.predict(x)
+        return self.model.predict(x).flatten()
 
     # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
@@ -83,9 +83,9 @@ class DenseNeuralNetwork(Model):
         stock_code = "general" if self.stock_code is None else self.stock_code
 
         # Build the relative path of the model file
-        model_path = path.join(self.get_model_type_hash(), stock_code, model_name)
+        model_path = path.join(self.get_model_type_hash(), stock_code)
 
-        self.save_model(path.join(saved_model_dir, model_path), self.KERAS_MODEL)
+        self.save_model(path.join(saved_model_dir, model_path, model_name), self.KERAS_MODEL)
 
         # Update the configuration file models_data.json, which stores metadata for all
         # the models built with DNN
@@ -163,8 +163,7 @@ class DenseNeuralNetwork(Model):
 
     # Get the "Display name" for the model
     def get_model_display_name(self):
-        options_name = [str(self.model_options["n"]), "days", "change" if not self.model_options["use_stock_price"] else "price", "lookback =", str(self.model_options["lookback"])]
-        return "Dense Neural Network (%s)" % " ".join(options_name)
+        return "Dense Neural Network"
 
     @staticmethod
     def get_all_models(stock_code, saved_model_dir):
@@ -174,19 +173,27 @@ class DenseNeuralNetwork(Model):
 
         models = []
         for model_type in models_data["models"]:
-            models.append(DenseNeuralNetwork(
-                models_data["modelTypes"][model_type]["modelOptions"],
-                models_data["modelTypes"][model_type]["inputOptions"],
-                stock_code=stock_code,
-                load=True,
-                saved_model_dir=saved_model_dir,
-                saved_model_path=models_data["models"][model_type]["general"][-1]["model_path"]))
-            models.append(DenseNeuralNetwork(
-                models_data["modelTypes"][model_type]["modelOptions"],
-                models_data["modelTypes"][model_type]["inputOptions"],
-                stock_code=stock_code,
-                load=True,
-                saved_model_dir=saved_model_dir,
-                saved_model_path=models_data["models"][model_type][stock_code][-1]["model_path"]))
+            if len(models_data["models"][model_type]["general"]) > 0:
+                models.append(DenseNeuralNetwork(
+                    models_data["modelTypes"][model_type]["modelOptions"],
+                    models_data["modelTypes"][model_type]["inputOptions"],
+                    stock_code=stock_code,
+                    load=True,
+                    saved_model_dir=saved_model_dir,
+                    saved_model_path=path.join(
+                        models_data["models"][model_type]["general"][-1]["model_path"],
+                        models_data["models"][model_type]["general"][-1]["model_name"])
+                ))
+            if len(models_data["models"][model_type][stock_code]) > 0:
+                models.append(DenseNeuralNetwork(
+                    models_data["modelTypes"][model_type]["modelOptions"],
+                    models_data["modelTypes"][model_type]["inputOptions"],
+                    stock_code=stock_code,
+                    load=True,
+                    saved_model_dir=saved_model_dir,
+                    saved_model_path=path.join(
+                        models_data["models"][model_type][stock_code][-1]["model_path"],
+                        models_data["models"][model_type][stock_code][-1]["model_name"])
+                ))
 
         return models
