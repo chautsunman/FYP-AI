@@ -20,7 +20,11 @@ from build_dataset import build_dataset
 from train_models import SAVED_MODELS_DIR_MAP
 
 def get_predictions(stock_code):
-    """Get the predictions of a stock from all trained models.
+    """Gets the predictions of a stock from all trained models.
+
+    1. Get all saved models.
+    2. Build the predict data based on the model's input options.
+    3. Predict stock price.
 
     Args:
         stock_code: Stock code specifying a stock.
@@ -84,6 +88,8 @@ def get_predictions(stock_code):
     return {"predictions": predictions_all, "models": models_all}
 
 def save_predictions_local(stock_code):
+    """Saves predictions in local in saved_predictions/<stock_code>."""
+
     # get the predictions
     predictions = get_predictions(stock_code)
 
@@ -96,6 +102,8 @@ def save_predictions_local(stock_code):
         json.dump(predictions, predictions_file, indent=4)
 
 def save_predictions_cloud(stock_code):
+    """Saves predictions onto Firebase Cloud Storage in predictions/<stock_code>."""
+
     # initialize Firebase admin
     cred = credentials.Certificate("credentials/firebase-adminsdk.json")
     firebase_admin.initialize_app(cred, {
