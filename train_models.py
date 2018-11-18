@@ -22,6 +22,25 @@ SAVED_MODELS_DIR_MAP = {
 }
 
 def train_models(train_models_data):
+    """Trains models.
+
+    Args:
+        train_models_data: Train models data.
+            Format:
+            {
+                models: [
+                    {
+                        "model": "model type, matches MODEL in a model class",
+                        "stockCode": "the predicting stock",
+                        "modelOptions": "model options dict",
+                        "inputOptions": "input options dict"
+                    }
+                ]
+            }
+            Refer to train_models_sample.json.
+
+    """
+
     if not path.isdir(SAVED_MODELS_DIR):
         makedirs(SAVED_MODELS_DIR)
 

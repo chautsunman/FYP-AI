@@ -2,6 +2,17 @@ import numpy as np
 import pandas as pd
 
 def build_moving_avg(data, column_name, lookback):
+    """Builds moving average dataset.
+
+    Args:
+        data: A Pandas DataFrame (1 column (<column_name>), sorted from oldest to latest).
+        column_name: Name of the data column used to calculate the moving average.
+        lookback: The number of data used to calculate the moving average.
+
+    Returns:
+        A Pandas DataFrame with moving_avg column.
+    """
+
     moving_avg = data.cumsum()
     moving_avg = pd.concat([pd.DataFrame([0.0], index=["0"], columns=[column_name]), moving_avg])
     moving_avg.iloc[lookback + 1:, 0] = moving_avg.iloc[lookback:-1, 0].values - moving_avg.iloc[:-lookback - 1, 0].values
@@ -11,6 +22,17 @@ def build_moving_avg(data, column_name, lookback):
     return moving_avg
 
 def build_lookback(data, column_name, lookback):
+    """Builds lookback dataset.
+
+    Args:
+        data: A Pandas DataFrame (sorted from oldest to latest).
+        column_name: Name of the data column used to build the lookback.
+        lookback: The number of lookback data.
+
+    Returns:
+        A Pandas DataFrame with <lookback> columns.
+    """
+
     return pd.DataFrame(
         np.stack(data.loc[:, column_name][i:i+lookback] for i in range(0, data.loc[:, column_name].shape[0]-lookback)),
         index=data.index[lookback:],
@@ -18,6 +40,28 @@ def build_lookback(data, column_name, lookback):
     )
 
 def build_dataset(input_config, training):
+    """Build dataset.
+
+    Args:
+        input_config: A input config dict.
+            Format:
+            {
+                "stock_codes": <array_of_stock_codes_needed_to_build_the_dataset>,
+                "stock_code": "predicting stock code",
+                "column": "predicting value column name",
+                "config": [
+                    {"type": "feature type", <other_feature_configs},
+                    {"type": "feature type", <other_feature_configs},
+                    ...
+                ]
+            }
+            Refer to train_models_sample.json.
+        training: True to get the training dataset, False to get the features for prediction.
+
+    Returns:
+        A tuple of m-data-by-n-features NumPy array and m-data labels NumPy array for training,
+        or a 1-by-number-of-features NumPy array for prediction.
+    """
 
     stock_data = {}
 

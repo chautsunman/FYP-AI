@@ -9,9 +9,13 @@ from sklearn.metrics import mean_squared_error
 from models.index_regression import IndexRegressionModel
 
 class LinearIndexRegression(IndexRegressionModel):
+    """Linear index regression model."""
+
     MODEL = "linear_index_regression"
 
     def __init__(self, model_options, input_options, stock_code, load=False, saved_model_dir=None, saved_model_path=None):
+        """Initializes the model. Creates a new model or loads a saved model."""
+
         IndexRegressionModel.__init__(self, model_options, input_options, stock_code)
 
         if not load or saved_model_dir is None:
@@ -22,12 +26,41 @@ class LinearIndexRegression(IndexRegressionModel):
                 self.load_model(path.join(saved_model_dir, model_path), self.SKLEARN_MODEL)
 
     def train(self, xs, ys):
+        """Trains the model.
+
+        Args:
+            xs: m-by-1 NumPy index array of m indexes.
+            ys: Numpy label array of m data.
+        """
+
         self.model.fit(xs, ys)
 
     def predict(self, x):
+        """Predicts.
+
+        Returns:
+            A NumPy array of the prediction.
+        """
+
         return self.model.predict(x).flatten()
 
     def save(self, saved_model_dir):
+        """Saves the model in saved_model_dir.
+
+        1. Saves the model.
+        2. Saves the models data.
+
+        Directory structure:
+            <saved_model_dir>
+                stock_code
+                    model_type_hash
+                        (models)
+                models_data.json
+
+        Args:
+            saved_model_dir: A path to a directory where the model will be saved in.
+        """
+
         # create the saved models directory
         self.create_model_dir(saved_model_dir)
 
@@ -49,6 +82,38 @@ class LinearIndexRegression(IndexRegressionModel):
         self.save_models_data(models_data, saved_model_dir)
 
     def update_models_data(self, models_data, model_name, model_path):
+        """Updates models data to include this newly saved model.
+
+        Models data dict format:
+        {
+            "models": {
+                "<stock_code1>": {
+                    "<model_type_hash1>": [
+                        {"model_name": "model 1 name", "model_path": "model 1 path", "model": "linear_regression"},
+                        {"model_name": "model 2 name", "model_path": "model 2 path", "model": "linear_regression"},
+                        ...
+                    ],
+                    "<model_type_hash2>": [...],
+                    ...
+                },
+                "<stock_code2>": {...}
+            },
+            "modelTypes": {
+                "<model_type_hash1>": <model_type1_dict>,
+                "<model_type_hash2>": <model_type2_dict>,
+                ...
+            }
+        }
+
+        Args:
+            models_data: Old models data dict.
+            model_name: Saved model name.
+            model_path: Saved model path.
+
+        Returns:
+            Updated models_data dict.
+        """
+
         if self.stock_code not in models_data["models"]:
             models_data["models"][self.stock_code] = {}
 
@@ -70,9 +135,13 @@ class LinearIndexRegression(IndexRegressionModel):
         return models_data
 
     def get_model_type(self):
+        """Returns model type (model, model options, input options)."""
+
         return {"model": self.MODEL, "modelOptions": self.model_options, "inputOptions": self.input_options}
 
     def get_model_type_hash(self):
+        """Returns model type hash."""
+
         model_type = self.get_model_type()
 
         model_type_json_str = self.get_json_str(model_type)
@@ -80,12 +149,16 @@ class LinearIndexRegression(IndexRegressionModel):
         return self.hash_str(model_type_json_str)
 
     def get_model_name(self):
+        """Returns model name (<model_type_hash>_<time>.model)."""
+
         model_name = []
         model_name.append(self.get_model_type_hash())
         model_name.append(str(int(time.time())))
         return "_".join(model_name) + ".model"
 
     def get_saved_model_path(self, saved_model_dir):
+        """Returns model path of the latest saved same type model by searching the models data file, or None if not found."""
+
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
             return None
@@ -101,9 +174,13 @@ class LinearIndexRegression(IndexRegressionModel):
         return models_data["models"][self.stock_code][model_type_hash][-1]["model_path"]
 
     def get_model_display_name(self):
+        """Returns model display name for the app."""
+
         return "Linear Index Regression"
 
     def error(self, y_true, y_pred):
+        """Returns mean squared error of the prediction."""
+
         return mean_squared_error(y_true, y_pred)
 
     @staticmethod
