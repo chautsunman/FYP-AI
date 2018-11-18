@@ -122,21 +122,21 @@ class LinearIndexRegression(IndexRegressionModel):
             # create model
             m = LinearIndexRegression(model_options, input_options, stock_code)
 
-            # prepare d1 to d10     
+            # prepare d1 to d10
             listY = cleaned_prices[input_options["column"]][i + 1:i + 1 + n].values
 
             m.train(listX, listY)
-            
-            predict_n = input_options["config"][0]["predict_n"] if "predict_n" in input_options["config"][0] else 1        
+
+            predict_n = input_options["config"][0]["predict_n"] if "predict_n" in input_options["config"][0] else 1
             x = np.arange(input_options["config"][0]["n"], input_options["config"][0]["n"] + predict_n).reshape(-1, 1)
             y_pred = m.predict(x)
             print(y_pred, cleaned_prices[input_options["column"]][i:i + y_pred.shape[0]].values)
 
             error_sum += m.error(cleaned_prices[input_options["column"]][i:i + y_pred.shape[0]].values, y_pred)
-            
+
         return error_sum/iteration_limit
 
-    def get_all_models(stock_code, saved_model_dir, last_price):
+    def get_all_models(stock_code, saved_model_dir):
         models_data = IndexRegressionModel.load_models_data(saved_model_dir)
         if models_data is None:
             return None
