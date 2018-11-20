@@ -6,14 +6,25 @@ import os
 import firebase_admin
 from firebase_admin import credentials
 from firebase_admin import storage
+import numpy as np
 import pandas as pd
 
-from models.linear_regression import get_all_predictions as get_all_linear_predictions
-from models.svr_regression import get_all_predictions as get_all_svr_predictions
-from models.dnn_regression import DenseNeuralNetwork, get_all_predictions as get_all_dnn_predictions, get_no_of_data_required
+from models.linear_regression import LinearRegression
+from models.svr import SupportVectorRegression
+from models.linear_index_regression import LinearIndexRegression
+from models.svr_index_regression import SupportVectorIndexRegression
+from models.dnn_regression import DenseNeuralNetwork
+
+from build_dataset import build_dataset
+
+from train_models import SAVED_MODELS_DIR_MAP
 
 def get_predictions(stock_code):
-    """Get the predictions of a stock from all trained models.
+    """Gets the predictions of a stock from all trained models.
+
+    1. Get all saved models.
+    2. Build the predict data based on the model's input options.
+    3. Predict stock price.
 
     Args:
         stock_code: Stock code specifying a stock.
@@ -32,26 +43,53 @@ def get_predictions(stock_code):
         }
     """
 
-    no_of_data_required = get_no_of_data_required(stock_code, "./saved_models/dnn")
-    stock_prices = pd.read_csv("./data/stock_prices/" + stock_code + ".csv", nrows=no_of_data_required)
-
     predictions_all = []
+    models_all = []
 
-    # get all predictions and models
-    predictions_linear, models_linear = get_all_linear_predictions(stock_code, "./saved_models/linear", stock_prices.loc[0, "adjusted_close"])
-    predictions_svr, models_svr = get_all_svr_predictions(stock_code, "./saved_models/svr", stock_prices.loc[0, "adjusted_close"])
-    predictions_dnn, models_dnn = get_all_dnn_predictions(stock_code, "./saved_models/dnn", stock_prices, stock_prices.loc[0, "adjusted_close"])
+    # get all predictions and models data
+    models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL])
+    predictions = []
+    for model in models:
+        x = build_dataset(model.input_options, False)
+        predictions.append(model.predict(x))
+    predictions_all += predictions
+    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL])
+    predictions = []
+    for model in models:
+        x = build_dataset(model.input_options, False)
+        predictions.append(model.predict(x))
+    predictions_all += predictions
+    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL])
+    predictions = []
+    for model in models:
+        x = build_dataset(model.input_options, False)
+        predictions.append(model.predict(x))
+    predictions_all += predictions
+    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL])
+    predictions = []
+    for model in models:
+        x = build_dataset(model.input_options, False)
+        predictions.append(model.predict(x))
+    predictions_all += predictions
+    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL])
+    predictions = []
+    for model in models:
+        x = build_dataset(model.input_options, False)
+        predictions.append(model.predict(x))
+    predictions_all += predictions
+    models_all += [{"modelName": model.get_model_display_name()} for model in models]
 
-    predictions_all = predictions_linear + predictions_svr + predictions_dnn
-    models_all = models_linear + models_svr + models_dnn
-
-    # format predictions and models
     predictions_all = [prediction.tolist() for prediction in predictions_all]
-    models_all = [{"modelName": model.get_model_display_name()} for model in models_all]
 
     return {"predictions": predictions_all, "models": models_all}
 
 def save_predictions_local(stock_code):
+    """Saves predictions in local in saved_predictions/<stock_code>."""
+
     # get the predictions
     predictions = get_predictions(stock_code)
 
@@ -61,9 +99,11 @@ def save_predictions_local(stock_code):
 
     # save the predictions and models
     with open("./saved_predictions/" + stock_code + "/" + date.today().isoformat() + ".json", "w") as predictions_file:
-        json.dump(predictions, predictions_file)
+        json.dump(predictions, predictions_file, indent=4)
 
 def save_predictions_cloud(stock_code):
+    """Saves predictions onto Firebase Cloud Storage in predictions/<stock_code>."""
+
     # initialize Firebase admin
     cred = credentials.Certificate("credentials/firebase-adminsdk.json")
     firebase_admin.initialize_app(cred, {

@@ -5,5 +5,11 @@ saved_predictions
 credentials
 
 __pycache__
+*.pyc
+.ipynb_checkpoints
 
 env
+
+index_model_scoring.json
+index_model_scoring_linear.json
+/.vscode

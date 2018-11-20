@@ -1,61 +1,41 @@
 from os import path
-import pickle
-import json
 import time
-import os
 
-from keras.models import Sequential
-from keras.models import load_model
-from keras.layers import Dense
-from keras import optimizers
-
+from sklearn.svm import SVR
 import numpy as np
 from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
-class DenseNeuralNetwork(Model):
-    """Neural network."""
+class SupportVectorRegression(Model):
+    """Support vector regression model."""
 
-    MODEL = "dnn"
-
-    # Helper method to build the DNN model
-    def build_model(self):
-
-        # Seed the machine
-        np.random.seed()
-
-        self.model = Sequential()
-
-        net = self.model_options["net"]
-
-        # Specify the neural network configuration
-        for layer in net["layers"]:
-            if "is_input" in layer and layer["is_input"]:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(layer["inputUnits"],)))
-            elif "is_output" in layer and layer["is_output"]:
-                self.model.add(Dense(units=1, activation=layer["activation"]))
-            else:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
-        #self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
-        #self.model.add(Dense(units=8, activation="relu"))
-        #self.model.add(Dense(units=1, activation="relu"))
-
-        #self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
-        self.model.compile(loss=net["loss"], optimizer=net["optimizer"], metrics=net["metrics"])
+    MODEL = "svr"
 
     def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
         """Initializes the model. Creates a new model or loads a saved model."""
 
         Model.__init__(self, model_options, input_options, stock_code=stock_code)
 
+        # Please check scipy SVR documentation for details
         if not load or saved_model_dir is None:
-            self.build_model()
-
+            self.model = SVR(
+                kernel=self.model_options["kernel"],
+                degree=self.model_options["degree"],
+                gamma=self.model_options["gamma"],
+                coef0=self.model_options["coef0"],
+                tol=self.model_options["tol"],
+                C=self.model_options["C"],
+                epsilon=self.model_options["epsilon"],
+                shrinking=self.model_options["shrinking"],
+                cache_size=self.model_options["cache_size"],
+                verbose=self.model_options["verbose"],
+                max_iter=self.model_options["max_iter"]
+            )
         else:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
-                self.load_model(path.join(saved_model_dir, model_path), Model.KERAS_MODEL)
+                self.load_model(path.join(saved_model_dir, model_path), self.SKLEARN_MODEL)
 
     def train(self, xs, ys):
         """Trains the model.
@@ -65,21 +45,7 @@ class DenseNeuralNetwork(Model):
             ys: A Numpy label array of m data.
         """
 
-        # Initialize the evaluation_metric to its threshold so that the model must be trained
-        # at least once
-        evaluation_metric = self.model_options["net"]["evaluation_criteria"]["threshold"]
-
-        # If we aim to minimize the evaluation criteria, e.g. mse, retrain until criteria < threshold
-        if self.model_options["net"]["evaluation_criteria"]["minimize"]:
-            while evaluation_metric >= self.model_options["net"]["evaluation_criteria"]["threshold"]:
-                self.build_model()
-                self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
-                evaluation_metric = self.model.evaluate(xs, ys)[1]
-        else:
-            while evaluation_metric <= self.model_options["net"]["evaluation_criteria"]["threshold"]:
-                self.build_model()
-                self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
-                evaluation_metric = self.model.evaluate(xs, ys)[1]
+        self.model.fit(xs, ys)
 
     def predict(self, x):
         """Predicts.
@@ -90,7 +56,6 @@ class DenseNeuralNetwork(Model):
 
         return self.model.predict(x).flatten()
 
-    # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
         """Saves the model in saved_model_dir.
 
@@ -108,29 +73,25 @@ class DenseNeuralNetwork(Model):
             saved_model_dir: A path to a directory where the model will be saved in.
         """
 
+        # create the saved models directory
         self.create_model_dir(saved_model_dir)
 
-        # Get the model name
         model_name = self.get_model_name()
-
         stock_code = "general" if self.stock_code is None else self.stock_code
-
-        # Build the relative path of the model file
         model_path = path.join(self.get_model_type_hash(), stock_code)
 
-        self.save_model(path.join(saved_model_dir, model_path, model_name), self.KERAS_MODEL)
+        # save the model
+        self.save_model(path.join(saved_model_dir, model_path, model_name), self.SKLEARN_MODEL)
 
-        # Update the configuration file models_data.json, which stores metadata for all
-        # the models built with DNN
-        # Append to existing configuration file if there is one
+        # load models data
         models_data = self.load_models_data(saved_model_dir)
         if models_data is None:
-            # Create a new one if there is no configuration file for DNN yet
             models_data = {"models": {}, "modelTypes": {}}
 
         # update models data
         models_data = self.update_models_data(models_data, model_name, model_path)
 
+        # save models data
         self.save_models_data(models_data, saved_model_dir)
 
     def update_models_data(self, models_data, model_name, model_path):
@@ -167,8 +128,6 @@ class DenseNeuralNetwork(Model):
             Updated models_data dict.
         """
 
-        # model_type consists of all the parameters used for training this particular model
-        # e.g. number of days used
         model_type_hash = self.get_model_type_hash()
 
         if model_type_hash not in models_data["models"]:
@@ -191,7 +150,6 @@ class DenseNeuralNetwork(Model):
 
         return models_data
 
-    # Configuration options for a particular model
     def get_model_type(self):
         """Returns model type (model, model options, input options)."""
 
@@ -206,15 +164,13 @@ class DenseNeuralNetwork(Model):
 
         return self.hash_str(model_type_json_str)
 
-    # Build and get the model name
-    # This implementation uses the model type plus a timestamp
     def get_model_name(self):
         """Returns model name (<model_type_hash>_<time>.model)."""
 
         model_name = []
         model_name.append(self.get_model_type_hash())
         model_name.append(str(int(time.time())))
-        return "_".join(model_name) + ".h5"
+        return "_".join(model_name) + ".model"
 
     def get_saved_model_path(self, saved_model_dir):
         """Returns model path of the latest saved same type model by searching the models data file, or None if not found."""
@@ -235,11 +191,14 @@ class DenseNeuralNetwork(Model):
 
         return models_data["models"][model_type_hash][stock_code][-1]["model_path"]
 
-    # Get the "Display name" for the model
+    # Return the name of the model in displayable format
     def get_model_display_name(self):
         """Returns model display name for the app."""
 
-        return "Dense Neural Network"
+        return "SVM Regression, Kernel = {}".format(self.model_options["kernel"])
+
+    def error(self, y_true, y_pred):
+        return mean_squared_error(y_true, y_pred)
 
     @staticmethod
     def get_all_models(stock_code, saved_model_dir):
@@ -252,7 +211,7 @@ class DenseNeuralNetwork(Model):
         models = []
         for model_type in models_data["models"]:
             if len(models_data["models"][model_type]["general"]) > 0:
-                models.append(DenseNeuralNetwork(
+                models.append(SupportVectorRegression(
                     models_data["modelTypes"][model_type]["modelOptions"],
                     models_data["modelTypes"][model_type]["inputOptions"],
                     stock_code=stock_code,
@@ -263,7 +222,7 @@ class DenseNeuralNetwork(Model):
                         models_data["models"][model_type]["general"][-1]["model_name"])
                 ))
             if len(models_data["models"][model_type][stock_code]) > 0:
-                models.append(DenseNeuralNetwork(
+                models.append(SupportVectorRegression(
                     models_data["modelTypes"][model_type]["modelOptions"],
                     models_data["modelTypes"][model_type]["inputOptions"],
                     stock_code=stock_code,

@@ -2,5 +2,6 @@
   "editor.tabSize": 4,
   "editor.insertSpaces": true,
 
-  "python.pythonPath": "${workspaceFolder}\\env\\Scripts\\python.exe"
+  "python.pythonPath": "env\\Scripts\\python.exe",
+  "python.linting.pylintEnabled": false
 }
