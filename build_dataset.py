@@ -39,6 +39,84 @@ def build_lookback(data, column_name, lookback):
         columns=["lookback_" + str(i) for i in range(lookback, 0, -1)]
     )
 
+
+def get_feature_vector(input_config, previous_prices, last_feature_vector):
+    """Get a new feature vector based on the last one and the input config
+
+    Args:
+        input_config: A input config dict.
+        Format:
+            {
+                "stock_codes": <array_of_stock_codes_needed_to_build_the_dataset>,
+                "stock_code": "predicting stock code",
+                "column": "predicting value column name",
+                "config": [
+                    {"type": "feature type", <other_feature_configs},
+                    {"type": "feature type", <other_feature_configs},
+                    ...
+                ]
+            }
+            Refer to train_models_sample.json.
+        last_feature_vector:  The last feature vector
+
+    Returns:
+        A 1-by-number-of-features NumPy array for prediction.
+
+    """ 
+
+    stock_data = {}
+    
+    # Read the stock prices
+    for stock_code in input_config["stock_codes"]:
+        stock_data[stock_code] = pd.read_csv('data/stock_prices/' + stock_code + '.csv', index_col=0).iloc[::-1]
+
+
+    feature_vector = []
+
+    for config in input_config["config"]:
+        if config["type"] == "lookback":
+            # Determine how many prices should we get from dataset
+            # If dataset contains only data up to time t
+            # e.g. if lookback = 10, to predict price at t + 4
+            # We first predict prices from t + 1 to t + 3
+            # Then grab the prices from t - 6 to t (last 7 records)   
+            # and add the predictions from t + 1 to t + 3 to the array
+            # Hence we want to grab the -10 + 3 = -7 = last 7 records  
+            n = -config["n"] + len(previous_prices)
+            column = config["column"]
+
+            if n < 0:
+                feature_vector.extend(stock_data[stock_code][column][n:])
+
+            feature_vector.extend(previous_prices[-min(config["n"], len(previous_prices)):])
+
+        elif config["type"] == "moving_avg":
+            # Follow same logic as above
+            n = -config["n"] + len(previous_prices)
+            column = config["column"]
+            cumsum = 0
+            if n < 0:
+                cumsum += sum(stock_data[stock_code][column][n:])
+
+            cumsum += sum(previous_prices[-min(config["n"], len(previous_prices)):])
+            moving_avg = cumsum / config["n"]
+
+            feature_vector.append(moving_avg)
+
+        """
+        elif config["type"] == "index_price": 
+            # Length of new feature vector should be the same as the old one
+            # The starting index for index_price list should be same as the
+            # next index of the feature vector built up to this point
+            start_pos = len(feature_vector)
+            end_pos = start_pos + config["n"]
+            feature_vector.extend(last_feature_vector[start_pos:end_pos])
+            feature_vector.append(last_feature_vector[end_pos-1] + 1)
+        """
+
+    return np.array(feature_vector).reshape(1, -1)
+
+
 def build_dataset(input_config, training):
     """Build dataset.
 

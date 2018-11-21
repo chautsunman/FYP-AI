@@ -15,7 +15,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset
+from build_dataset import build_dataset, get_feature_vector
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -51,35 +51,71 @@ def get_predictions(stock_code):
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, False)
-        predictions.append(model.predict(x))
+
+        prediction = model.predict(x)
+        for _ in range(29):
+            x = get_feature_vector(model.input_options, prediction, x)
+            prediction = np.concatenate((prediction, model.predict(x)), axis=None)
+
+        predictions.append(prediction) 
+
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL])
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, False)
-        predictions.append(model.predict(x))
+
+        prediction = model.predict(x)
+        
+        for _ in range(29):
+            x = get_feature_vector(model.input_options, prediction, x)
+            prediction = np.concatenate((prediction, model.predict(x)), axis=None)
+
+        predictions.append(prediction) 
+
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL])
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, False)
-        predictions.append(model.predict(x))
+
+        prediction = model.predict(x)
+        """
+        for _ in range(29):
+            x = get_feature_vector(model.input_options, prediction, x)
+            prediction = np.concatenate((prediction, model.predict(x)), axis=None)
+
+        predictions.append(prediction) 
+        """
+
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL])
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, False)
         predictions.append(model.predict(x))
+
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL])
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, False)
-        predictions.append(model.predict(x))
+
+        prediction = model.predict(x)
+        for _ in range(29):
+            x = get_feature_vector(model.input_options, prediction, x)
+            prediction = np.concatenate((prediction, model.predict(x)), axis=None)
+
+        predictions.append(prediction) 
+
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
 
