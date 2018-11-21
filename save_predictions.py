@@ -15,7 +15,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset, get_feature_vector
+from build_dataset import build_dataset, get_feature_vector, get_feature_vector_size
 
 from train_models import SAVED_MODELS_DIR_MAP
 

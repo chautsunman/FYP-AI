@@ -39,6 +39,38 @@ def build_lookback(data, column_name, lookback):
         columns=["lookback_" + str(i) for i in range(lookback, 0, -1)]
     )
 
+def get_feature_vector_size(input_config):
+    """Get the size of the feature vector based on the input config
+    
+    Args:
+        input_config: A input config dict.
+        Format:
+            {
+                "stock_codes": <array_of_stock_codes_needed_to_build_the_dataset>,
+                "stock_code": "predicting stock code",
+                "column": "predicting value column name",
+                "config": [
+                    {"type": "feature type", <other_feature_configs},
+                    {"type": "feature type", <other_feature_configs},
+                    ...
+                ]
+            }
+            Refer to train_models_sample.json.
+
+    Returns:
+        number of features of the feature_vector.
+
+    """
+    feature_vector_size = 0
+    for config in input_config["config"]:
+        if config["type"] == "lookback" or config["type"] == "index_price":
+            feature_vector_size += config["n"]
+
+        elif config["type"] == "moving_avg":
+            feature_vector_size += 1
+
+    return feature_vector_size
+
 
 def get_feature_vector(input_config, previous_prices, last_feature_vector):
     """Get a new feature vector based on the last one and the input config
