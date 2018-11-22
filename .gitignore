@@ -5,6 +5,7 @@ saved_predictions
 credentials
 
 __pycache__
+.ipynb_checkpoints
 
 env
 
