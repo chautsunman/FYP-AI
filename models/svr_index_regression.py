@@ -200,7 +200,7 @@ class SupportVectorIndexRegression(IndexRegressionModel):
     @staticmethod
     def calculate_average_mean_squared_error(model_options, input_options, stock_code, iteration_limit, data_dir):
 
-        stock_prices = pd.read_csv (data_dir + '\\stock_prices\\' + stock_code + '.csv')
+        stock_prices = pd.read_csv (data_dir + '/stock_prices/' + stock_code + '.csv')
         cleaned_prices = stock_prices
 
         i = 0
@@ -221,7 +221,6 @@ class SupportVectorIndexRegression(IndexRegressionModel):
             predict_n = input_options["config"][0]["predict_n"] if "predict_n" in input_options["config"][0] else 1
             x = np.arange(input_options["config"][0]["n"], input_options["config"][0]["n"] + predict_n).reshape(-1, 1)
             y_pred = m.predict(x)
-            print(y_pred, cleaned_prices[input_options["column"]][i:i + y_pred.shape[0]].values)
 
             error_sum += m.error(cleaned_prices[input_options["column"]][i:i + y_pred.shape[0]].values, y_pred)
 
