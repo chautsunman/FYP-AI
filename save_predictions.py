@@ -50,35 +50,35 @@ def get_predictions(stock_code):
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL])
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, False)
+        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL])
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, False)
+        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL])
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, False)
+        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL])
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, False)
+        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL])
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, False)
+        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]

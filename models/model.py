@@ -9,6 +9,7 @@ class Model:
     """Base class for all models."""
 
     SKLEARN_MODEL = "sklearn"
+    SKLEARN_MODEL_ARRAY = "sklearn_array"
     KERAS_MODEL = "keras"
 
     def __init__(self, model_options, input_options, stock_code=None):
@@ -42,7 +43,7 @@ class Model:
         # create the model directory
         self.create_model_dir(path.dirname(model_path))
 
-        if model_type == self.SKLEARN_MODEL:
+        if model_type == self.SKLEARN_MODEL or model_type == self.SKLEARN_MODEL_ARRAY:
             # save the scikit-learn model with pickle
             with open(model_path, "wb") as model_file:
                 pickle.dump(self.model, model_file)
@@ -58,7 +59,7 @@ class Model:
             model_type: Library that the model is built on top of.
         """
 
-        if model_type == self.SKLEARN_MODEL:
+        if model_type == self.SKLEARN_MODEL or model_type == self.SKLEARN_MODEL_ARRAY:
             # load the scikit-learn model with pickle
             with open(model_path, "rb") as model_file:
                 self.model = pickle.load(model_file)
