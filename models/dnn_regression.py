@@ -14,11 +14,108 @@ from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
+from options import OPTION_TYPES
+
 class DenseNeuralNetwork(Model):
     """Neural network."""
 
     MODEL = "dnn"
 
+    MODEL_OPTIONS_CONFIG = {
+        "net": {
+            "type": OPTION_TYPES["nested"],
+            "option_config": {
+                "layers": {
+                    "type": OPTION_TYPES["array"],
+                    "option_configs": [
+                        {
+                            "units": {
+                                "type": OPTION_TYPES["step"],
+                                "option_config": {
+                                    "range": [1, 10],
+                                    "step": 1
+                                } 
+                            },
+                            "activation": {
+                                "type": OPTION_TYPES["discrete"],
+                                "option_config": {
+                                    "options": [
+                                        "relu", "linear", "exponential", "hard_sigmoid", "sigmoid", 
+                                        "tanh", "softsign", "softplus", "selu", "elu", "softmax"
+                                    ]
+                                }
+                            } 
+                            # "is_input": {
+                            #     "type": OPTION_TYPES["discrete"],
+                            #     "option_config": {
+                            #         "options": [True, False]                               
+                            # }, 
+                            # "inputUnits": {
+                            #     "type": OPTION_TYPES["step"],
+                            #     "option_config": {
+                            #         "range": [10, 20],
+                            #         "step": 5
+                            #     }                                 
+                            # }
+                        }
+                    ]
+                },
+                "loss": {
+                    "type": OPTION_TYPES["discrete"],
+                    "option_config": {
+                        "options": [
+                            "mse", "mean_absolute_error", "mean_absolute_percentage_error", "mean_squared_logarithmic_error",
+                            "squared_hinge", "hinge"
+                        ]
+                    }
+                },
+                "optimizer": {
+                    "type": OPTION_TYPES["discrete"],
+                    "option_config": {
+                        "options": [
+                            "Nadam", "Adamax", "Adam", "Adadelta", "Adagrad", "RMSprop", "SGD"
+                        ]
+                    }
+                },
+                "epochs": {
+                    "type": OPTION_TYPES["step"],
+                    "option_config": {
+                        "range": [1, 10],
+                        "step": 1
+                    }
+                },
+                "batch_size": {
+                    "type": OPTION_TYPES["step"],
+                    "option_config": {
+                        "range": [10, 60],
+                        "step": 1
+                    }
+                },
+                "metrics": {
+                    "type": OPTION_TYPES["static"],
+                    "value": ["accuracy"]
+                },
+                "evaluation_criteria": {
+                    "type": OPTION_TYPES["nested"],
+                    "option_config": {
+                        "minimize": {
+                            "type": OPTION_TYPES["discrete"],
+                            "option_config": {
+                                "options": [True, False]
+                            }
+                        },
+                        "threshold": {
+                            "type": OPTION_TYPES["step"],
+                            "option_config": {
+                                "range": [1, 10],
+                                "step": 1
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     # Helper method to build the DNN model
     def build_model(self):
 

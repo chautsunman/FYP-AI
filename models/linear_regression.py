@@ -12,6 +12,8 @@ class LinearRegression(Model):
 
     MODEL = "linear_regression"
 
+    MODEL_OPTIONS_CONFIG = {}
+
     def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
         """Initializes the model. Creates a new model or loads a saved model."""
 

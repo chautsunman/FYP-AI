@@ -7,10 +7,76 @@ from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
+from options import OPTION_TYPES
+
 class SupportVectorRegression(Model):
     """Support vector regression model."""
 
     MODEL = "svr"
+
+    MODEL_OPTIONS_CONFIG = {
+        "kernel": {
+            "type": OPTION_TYPES["discrete"],
+            "option_config": {
+                "options": ['rbf', 'linear', 'poly', 'rbf', 'sigmoid']
+            }
+        },
+        "degree": {
+            "type": OPTION_TYPES["step"],
+            "option_config": {
+                "range": [1, 10],
+                "step": 1
+            }
+        },
+        "gamma": {
+            "type": OPTION_TYPES["static"],
+            "value": "auto"
+        },
+        "coef0": {
+            "type": OPTION_TYPES["continuous"],
+            "option_config": {
+                "range": [0, 10]
+            }
+        },
+        "tol": {
+            "type": OPTION_TYPES["continuous"],
+            "option_config": {
+                "range": [0.001, 0.01],
+            }
+        },
+        "C": {
+            "type": OPTION_TYPES["continuous"],
+            "option_config": {
+                "range": [1, 5],
+            }
+        },
+        "epsilon": {
+            "type": OPTION_TYPES["continuous"],
+            "option_config": {
+                "range": [0.1, 0.5],
+            }
+        },
+        "shrinking": {
+            "type": OPTION_TYPES["discrete"],
+            "option_config": {
+                "options": [True, False]
+            }
+        },
+        "cache_size": {
+            "type": OPTION_TYPES["continuous"],
+            "option_config": {
+                "range": [500, 1000],
+            }
+        },
+        "verbose": {
+            "type": OPTION_TYPES["static"],
+            "value": False
+        },
+        "max_iter": {
+            "type": OPTION_TYPES["static"],
+            "value": -1
+        }
+    }
 
     def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
         """Initializes the model. Creates a new model or loads a saved model."""
