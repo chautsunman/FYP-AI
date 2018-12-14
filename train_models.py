@@ -58,7 +58,7 @@ def train_models(train_models_data):
             model = DenseNeuralNetwork(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
 
         # prepare the data and train the model
-        x, y = build_dataset(train_model_data["inputOptions"], True)
+        x, y = build_dataset(train_model_data["inputOptions"], model.model_options["predict_n"], True)
         model.train(x, y)
 
         # save the model

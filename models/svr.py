@@ -85,7 +85,7 @@ class SupportVectorRegression(Model):
 
         # Please check scipy SVR documentation for details
         if not load or saved_model_dir is None:
-            self.model = SVR(
+            self.model = [SVR(
                 kernel=self.model_options["kernel"],
                 degree=self.model_options["degree"],
                 gamma=self.model_options["gamma"],
@@ -97,7 +97,7 @@ class SupportVectorRegression(Model):
                 cache_size=self.model_options["cache_size"],
                 verbose=self.model_options["verbose"],
                 max_iter=self.model_options["max_iter"]
-            )
+            ) for _ in range(model_options["predict_n"])]
         else:
             model_path = saved_model_path if saved_model_path is not None else self.get_saved_model_path(saved_model_dir)
             if model_path is not None:
@@ -111,7 +111,8 @@ class SupportVectorRegression(Model):
             ys: A Numpy label array of m data.
         """
 
-        self.model.fit(xs, ys)
+        for i in range(self.model_options["predict_n"]):
+            self.model[i].fit(xs, ys[:, i])
 
     def predict(self, x):
         """Predicts.
@@ -120,7 +121,7 @@ class SupportVectorRegression(Model):
             A NumPy array of the prediction.
         """
 
-        return self.model.predict(x).flatten()
+        return np.array([model.predict(x).flatten() for model in self.model]).flatten()
 
     def save(self, saved_model_dir):
         """Saves the model in saved_model_dir.
@@ -147,7 +148,7 @@ class SupportVectorRegression(Model):
         model_path = path.join(self.get_model_type_hash(), stock_code)
 
         # save the model
-        self.save_model(path.join(saved_model_dir, model_path, model_name), self.SKLEARN_MODEL)
+        self.save_model(path.join(saved_model_dir, model_path, model_name), self.SKLEARN_MODEL_ARRAY)
 
         # load models data
         models_data = self.load_models_data(saved_model_dir)

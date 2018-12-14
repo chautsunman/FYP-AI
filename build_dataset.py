@@ -39,7 +39,7 @@ def build_lookback(data, column_name, lookback):
         columns=["lookback_" + str(i) for i in range(lookback, 0, -1)]
     )
 
-def build_dataset(input_config, training):
+def build_dataset(input_config, predict_n, training):
     """Build dataset.
 
     Args:
@@ -56,10 +56,11 @@ def build_dataset(input_config, training):
                 ]
             }
             Refer to train_models_sample.json.
+        predict_n: Number of days of stock prices to predict
         training: True to get the training dataset, False to get the features for prediction.
 
     Returns:
-        A tuple of m-data-by-n-features NumPy array and m-data labels NumPy array for training,
+        A tuple of m-data-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training,
         or a 1-by-number-of-features NumPy array for prediction.
     """
 
@@ -70,7 +71,15 @@ def build_dataset(input_config, training):
     for stock_code in input_config['stock_codes']:
         stock_data[stock_code] = pd.read_csv('data/stock_prices/' + stock_code + '.csv', index_col=0).iloc[::-1]
 
-    y = stock_data[input_config["stock_code"]][[input_config["column"]]]
+    predict_data = stock_data[input_config["stock_code"]]
+    predict_column = input_config["column"]
+    predict_data_shape = predict_data.shape
+    predict_data_len = predict_data_shape[0]
+    y = pd.DataFrame(
+        np.stack(predict_data[predict_column][i:i+predict_n] for i in range(predict_data_len - predict_n + 1)),
+        index=predict_data.index[:predict_data_len - predict_n + 1],
+        columns=["y_t+" + str(i) for i in range(predict_n)]
+    )
 
     if training:
         # Training
@@ -88,12 +97,11 @@ def build_dataset(input_config, training):
 
         data = y.join(X, how="inner")
 
-        return data.iloc[:, 1:].values, data.iloc[:, 0].values
+        return data.iloc[:, predict_n:].values, data.iloc[:, :predict_n].values
 
     else:
         # Prediction
         if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
-            predict_n = input_config["config"][0]["predict_n"] if "predict_n" in input_config["config"][0] else 1
             return np.arange(
                 input_config["config"][0]["n"] + 1,
                 input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)

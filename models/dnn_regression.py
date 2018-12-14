@@ -131,7 +131,7 @@ class DenseNeuralNetwork(Model):
             if "is_input" in layer and layer["is_input"]:
                 self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(layer["inputUnits"],)))
             elif "is_output" in layer and layer["is_output"]:
-                self.model.add(Dense(units=1, activation=layer["activation"]))
+                self.model.add(Dense(units=self.model_options["predict_n"], activation=layer["activation"]))
             else:
                 self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
         #self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))

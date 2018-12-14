@@ -1,9 +1,10 @@
 import argparse
+from datetime import datetime
+from os import path
 
 import requests
 import pandas as pd
 import io
-from os import path
 
 def preprocess_stock_prices(stock_prices):
     stock_price_changes = []
@@ -38,6 +39,10 @@ def get_stock_prices(stock_code):
         stock_prices = stock_prices.append(old_stock_prices, ignore_index=True)
 
     stock_prices.to_csv("./data/stock_prices/" + stock_code + ".csv", index=False)
+    
+    weekdays = stock_prices["timestamp"].apply(lambda timestamp: datetime.strptime(timestamp, "%Y-%m-%d").weekday())
+    weekly_stock_prices = stock_prices[weekdays == 4]
+    weekly_stock_prices.to_csv("./data/stock_prices/" + stock_code + "_weekly.csv", index=False)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Get stock prices for stocks.")
@@ -46,4 +51,5 @@ if __name__ == "__main__":
 
     for stock_code in args.stock_codes:
         get_stock_prices(stock_code)
+        # daily_to_weekly(stock_code)
         print("got {} stock prices".format(stock_code))

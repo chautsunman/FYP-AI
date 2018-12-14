@@ -3,7 +3,9 @@
         {
             "model": "linear_regression",
             "stockCode": "GOOGL",
-            "modelOptions": {},
+            "modelOptions": {
+                "predict_n": 10
+            },
             "inputOptions": {
                 "config": [
                     {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
@@ -28,7 +30,8 @@
                 "shrinking": true,
                 "cache_size": 500.0,
                 "verbose": false,
-                "max_iter": -1
+                "max_iter": -1,
+                "predict_n": 10
             },
             "inputOptions": {
                 "config": [
@@ -43,7 +46,9 @@
         {
             "model": "linear_index_regression",
             "stock_code": "GOOGL",
-            "modelOptions": {},
+            "modelOptions": {
+                "predict_n": 10
+            },
             "inputOptions": {
                 "config": [
                     {"type": "index_price", "n": 10}
@@ -69,7 +74,8 @@
                 "shrinking": true,
                 "cache_size": 500.0,
                 "verbose": false,
-                "max_iter": -1
+                "max_iter": -1,
+                "predict_n": 10
             },
             "inputOptions": {
                 "config": [
@@ -99,7 +105,8 @@
                         "minimize": true,
                         "threshold": 10
                     }
-                }
+                },
+                "predict_n": 10
             },
             "inputOptions": {
                 "config": [
