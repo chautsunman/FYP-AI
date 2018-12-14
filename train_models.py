@@ -9,6 +9,7 @@ from models.svr import SupportVectorRegression
 from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
+from models.fourier_transform import FourierTransform
 
 from build_dataset import build_dataset
 
@@ -18,7 +19,8 @@ SAVED_MODELS_DIR_MAP = {
     SupportVectorRegression.MODEL: path.join(SAVED_MODELS_DIR, "svr"),
     LinearIndexRegression.MODEL: path.join(SAVED_MODELS_DIR, "linear_index_regression"),
     SupportVectorIndexRegression.MODEL: path.join(SAVED_MODELS_DIR, "svr_index_regression"),
-    DenseNeuralNetwork.MODEL: path.join(SAVED_MODELS_DIR, "dnn")
+    DenseNeuralNetwork.MODEL: path.join(SAVED_MODELS_DIR, "dnn"),
+    FourierTransform.MODEL: path.join(SAVED_MODELS_DIR, "fourier_transform")
 }
 
 def train_models(train_models_data):
@@ -56,6 +58,8 @@ def train_models(train_models_data):
             model = SupportVectorIndexRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], train_model_data["stock_code"])
         elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
             model = DenseNeuralNetwork(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
+        elif train_model_data["model"] == FourierTransform.MODEL:
+            model = FourierTransform(train_model_data["modelOptions"], train_model_data["inputOptions"], train_model_data["stock_code"])
 
         # prepare the data and train the model
         x, y = build_dataset(train_model_data["inputOptions"], model.model_options["predict_n"], True)

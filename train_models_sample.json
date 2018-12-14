@@ -116,6 +116,21 @@
                 "stock_code": "GOOGL",
                 "column": "adjusted_close"
             }
+        },
+        {
+            "model": "fourier_transform",
+            "stockCode": "GOOGL",
+            "modelOptions": {
+                "predict_n": 10
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "index_price"}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
         }
     ]
 }

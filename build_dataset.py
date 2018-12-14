@@ -84,8 +84,9 @@ def build_dataset(input_config, predict_n, training):
     if training:
         # Training
         if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
-            x = np.arange(1, input_config["config"][0]["n"] + 1).reshape(-1, 1)
-            y = y.iloc[-input_config["config"][0]["n"]:, 0].values
+            prices_n = input_config["config"][0]["n"] if "n" in input_config["config"][0] else y.shape[0]
+            x = np.arange(1, prices_n + 1).reshape(-1, 1)
+            y = y.iloc[-prices_n:, 0].values
             return x, y
 
         for config in input_config['config']:

@@ -11,6 +11,7 @@ class Model:
     SKLEARN_MODEL = "sklearn"
     SKLEARN_MODEL_ARRAY = "sklearn_array"
     KERAS_MODEL = "keras"
+    CUSTOM_MODEL = "custom_model"
 
     def __init__(self, model_options, input_options, stock_code=None):
         """Initializes model, model options, input options and predicting stock."""
@@ -50,6 +51,10 @@ class Model:
         elif model_type == self.KERAS_MODEL:
             # save the Keras model
             self.model.save(model_path)
+        elif model_type == self.CUSTOM_MODEL:
+            # save the model with pickle
+            with open(model_path, "wb") as model_file:
+                pickle.dump(self.model, model_file)
 
     def load_model(self, model_path, model_type):
         """Loads the model from the model path.
@@ -66,6 +71,10 @@ class Model:
         elif model_type == self.KERAS_MODEL:
             # load the Keras model
             self.model = load_model(model_path)
+        elif model_type == self.CUSTOM_MODEL:
+            # load the model with pickle
+            with open(model_path, "rb") as model_file:
+                self.model = pickle.load(model_file)
 
     @staticmethod
     def save_models_data(models_data, saved_model_dir):

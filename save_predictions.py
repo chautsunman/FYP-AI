@@ -14,6 +14,7 @@ from models.svr import SupportVectorRegression
 from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
+from models.fourier_transform import FourierTransform
 
 from build_dataset import build_dataset
 
@@ -82,6 +83,12 @@ def get_predictions(stock_code):
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models = FourierTransform.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[FourierTransform.MODEL])
+    predictions = []
+    for model in models:
+        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
+        predictions.append(model.predict(x))
+    predictions_all += predictions
 
     predictions_all = [prediction.tolist() for prediction in predictions_all]
 
