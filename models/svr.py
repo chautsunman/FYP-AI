@@ -301,3 +301,21 @@ class SupportVectorRegression(Model):
                 ))
 
         return models
+
+    @staticmethod
+    def random_models(n):
+        return [
+            LinearRegression(
+                rand_all(LinearRegression.MODEL_OPTIONS_CONFIG),
+                {
+                    "config": [
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close"
+                }
+            )
+            for _ in range(n)
+        ]

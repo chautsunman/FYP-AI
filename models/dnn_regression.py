@@ -34,28 +34,28 @@ class DenseNeuralNetwork(Model):
                                 "option_config": {
                                     "range": [1, 10],
                                     "step": 1
-                                } 
+                                }
                             },
                             "activation": {
                                 "type": OPTION_TYPES["discrete"],
                                 "option_config": {
                                     "options": [
-                                        "relu", "linear", "exponential", "hard_sigmoid", "sigmoid", 
+                                        "relu", "linear", "exponential", "hard_sigmoid", "sigmoid",
                                         "tanh", "softsign", "softplus", "selu", "elu", "softmax"
                                     ]
                                 }
-                            } 
+                            }
                             # "is_input": {
                             #     "type": OPTION_TYPES["discrete"],
                             #     "option_config": {
-                            #         "options": [True, False]                               
-                            # }, 
+                            #         "options": [True, False]
+                            # },
                             # "inputUnits": {
                             #     "type": OPTION_TYPES["step"],
                             #     "option_config": {
                             #         "range": [10, 20],
                             #         "step": 5
-                            #     }                                 
+                            #     }
                             # }
                         }
                     ]
@@ -372,3 +372,21 @@ class DenseNeuralNetwork(Model):
                 ))
 
         return models
+
+    @staticmethod
+    def random_models(n):
+        return [
+            LinearRegression(
+                rand_all(LinearRegression.MODEL_OPTIONS_CONFIG),
+                {
+                    "config": [
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close"
+                }
+            )
+            for _ in range(n)
+        ]
