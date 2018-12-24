@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
-from options import OPTION_TYPES
+from options import OPTION_TYPES, rand_all, cross_over_all, mutate_all
 
 class SupportVectorRegression(Model):
     """Support vector regression model."""
@@ -305,8 +305,8 @@ class SupportVectorRegression(Model):
     @staticmethod
     def random_models(n):
         return [
-            LinearRegression(
-                rand_all(LinearRegression.MODEL_OPTIONS_CONFIG),
+            SupportVectorRegression(
+                rand_all(SupportVectorRegression.MODEL_OPTIONS_CONFIG),
                 {
                     "config": [
                         {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
@@ -319,3 +319,29 @@ class SupportVectorRegression(Model):
             )
             for _ in range(n)
         ]
+
+    @staticmethod
+    def evolve(models, n):
+        """Cross-over and breed new models."""
+
+        new_models = models
+
+        best_model_options = [model.model_options for model in models]
+
+        while len(new_models) < n:
+            new_model_options = cross_over_all(SupportVectorRegression.MODEL_OPTIONS_CONFIG, best_model_options)
+            new_model_options = mutate_all(SupportVectorRegression.MODEL_OPTIONS_CONFIG, new_model_options, 0.2)
+            new_models.append(SupportVectorRegression(
+                new_model_options,
+                {
+                    "config": [
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close"
+                }
+            ))
+
+        return new_models

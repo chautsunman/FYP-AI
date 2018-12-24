@@ -6,7 +6,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 
 from models.model import Model
-from options import rand_all
+from options import rand_all, cross_over_all, mutate_all
 
 class LinearRegression(Model):
     """Linear regression model."""
@@ -241,3 +241,29 @@ class LinearRegression(Model):
             )
             for _ in range(n)
         ]
+
+    @staticmethod
+    def evolve(models, n):
+        """Cross-over and breed new models."""
+
+        new_models = models
+
+        best_model_options = [model.model_options for model in models]
+
+        while len(new_models) < n:
+            new_model_options = cross_over_all(LinearRegression.MODEL_OPTIONS_CONFIG, best_model_options)
+            new_model_options = mutate_all(LinearRegression.MODEL_OPTIONS_CONFIG, new_model_options, 0.2)
+            new_models.append(LinearRegression(
+                new_model_options,
+                {
+                    "config": [
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close"
+                }
+            ))
+
+        return new_models

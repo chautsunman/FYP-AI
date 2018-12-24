@@ -28,7 +28,7 @@ def evolution(ModelClass, iterations):
         top_models = [models[i] for i in error_idx_sorted[:2]]
 
         # cross-over models and breed new models
-        models = ModelClass.cross_over_and_breed(top_models, 10)
+        models = ModelClass.evolve(top_models, 10)
 
     # return the best model
     best_model_idx = np.argmin(errors)
