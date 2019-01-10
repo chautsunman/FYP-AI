@@ -4,11 +4,11 @@
             "model": "dnn",
             "stockCode": "GOOGL",
             "modelOptions": {
-				"network_type": "LSTM",
+				"network_type": "GRU",
                 "net": {
                     "layers": [
 						{
-							"layer_type": "LSTM", 
+							"layer_type": "GRU", 
 							"units": 10, 
 							"activation": "relu", 
 							"recurrent_activation": "sigmoid", 
