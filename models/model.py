@@ -96,3 +96,22 @@ class Model:
     @staticmethod
     def hash_str(s):
         return sha256(s.encode()).hexdigest()
+
+    @staticmethod
+    def get_input_shape(input_options):
+        """Returns the shape of the input as a tuple, can be 
+           1-D (for scikit-learn models & simple DNNs) or 2-D (for LSTM)
+        """
+        input_shape = [0]
+        for config_item in input_options["config"]: 
+            if config_item["type"] == "lookback":
+                input_shape[-1] += config_item["n"]
+            elif config_item["type"] == "moving_avg":
+                input_shape[-1] += 1
+            elif config_item["type"] == "index_price":
+                input_shape[-1] += config_item["n"]
+
+        if "time_window" in input_options:
+            input_shape.insert(0, input_options["time_window"])
+
+        return tuple(input_shape)

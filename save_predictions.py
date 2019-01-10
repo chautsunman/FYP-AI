@@ -47,35 +47,35 @@ def get_predictions(stock_code):
     models_all = []
 
     # get all predictions and models data
-    models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL])
+    models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL])
+    models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL])
+    models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL])
+    models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL])
+    models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)

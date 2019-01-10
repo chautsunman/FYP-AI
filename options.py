@@ -51,7 +51,7 @@ class StepOption(object):
     def rand(option_config):
         return ((np.floor(np.random.rand() * (option_config["range"][1] - option_config["range"][0]) / option_config["step"] 
             + option_config["range"][0] / option_config["step"]) * option_config["step"]
-        )
+        ))
 
     @staticmethod
     def mutate(option, option_config):

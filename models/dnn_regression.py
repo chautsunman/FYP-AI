@@ -6,7 +6,7 @@ import os
 
 from keras.models import Sequential
 from keras.models import load_model
-from keras.layers import Dense
+from keras.layers import Dense, LSTM, SimpleRNN, GRU
 from keras import optimizers
 
 import numpy as np
@@ -44,11 +44,24 @@ class DenseNeuralNetwork(Model):
                                         "tanh", "softsign", "softplus", "selu", "elu", "softmax"
                                     ]
                                 }
-                            } 
+                            },
+                            "recurrent_activation": {
+                                "type": OPTION_TYPES["discrete"],
+                                "option_config": {
+                                    "options": ["hard_sigmoid", "sigmoid"]
+                                }
+                            },
+                            "stateful": {
+                                "type": OPTION_TYPES["discrete"],
+                                "option_config": {
+                                    "options": [True, False]
+                                }
+                            }
                             # "is_input": {
                             #     "type": OPTION_TYPES["discrete"],
                             #     "option_config": {
-                            #         "options": [True, False]                               
+                            #         "options": [True, False]
+                            #     }
                             # }, 
                             # "inputUnits": {
                             #     "type": OPTION_TYPES["step"],
@@ -69,8 +82,7 @@ class DenseNeuralNetwork(Model):
                         ]
                     }
                 },
-                "optimizer": {
-                    "type": OPTION_TYPES["discrete"],
+                "optimizer": { "type": OPTION_TYPES["discrete"],
                     "option_config": {
                         "options": [
                             "Nadam", "Adamax", "Adam", "Adadelta", "Adagrad", "RMSprop", "SGD"
@@ -128,12 +140,93 @@ class DenseNeuralNetwork(Model):
 
         # Specify the neural network configuration
         for layer in net["layers"]:
-            if "is_input" in layer and layer["is_input"]:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(layer["inputUnits"],)))
-            elif "is_output" in layer and layer["is_output"]:
-                self.model.add(Dense(units=self.model_options["predict_n"], activation=layer["activation"]))
+            if "layer_type" in layer and layer["layer_type"] == "LSTM":
+                if "is_input" in layer and layer["is_input"]:
+                    self.model.add(LSTM(
+                        units=layer["units"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=layer["return_sequences"],
+                        stateful=layer["stateful"],
+                        input_shape=self.get_input_shape(self.input_options)
+                    ))
+                elif "is_output" in layer and layer["is_output"]:
+                    # Output layer should only output the last LSTM output
+                    self.model.add(LSTM(
+                        units=layer["predict_n"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=False,
+                        stateful=layer["stateful"]
+                    ))
+                else:
+                    self.model.add(LSTM(
+                        units=layer["units"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=layer["return_sequences"],
+                        stateful=layer["stateful"]
+                    ))
+            elif "layer_type" in layer and layer["layer_type"] == "GRU":
+                if "is_input" in layer and layer["is_input"]:
+                    self.model.add(GRU(
+                        units=layer["units"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=layer["return_sequences"],
+                        stateful=layer["stateful"],
+                        input_shape=self.get_input_shape(self.input_options)
+                    ))
+                elif "is_output" in layer and layer["is_output"]:
+                    # Output layer should only output the last LSTM output
+                    self.model.add(GRU(
+                        units=layer["predict_n"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=False,
+                        stateful=layer["stateful"]
+                    ))
+                else:
+                    self.model.add(GRU(
+                        units=layer["units"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=layer["return_sequences"],
+                        stateful=layer["stateful"]
+                    ))
+            elif "layer_type" in layer and layer["layer_type"] == "SimpleRNN":
+                if "is_input" in layer and layer["is_input"]:
+                    self.model.add(SimpleRNN(
+                        units=layer["units"], 
+                        activation=layer["activation"], 
+                        return_sequences=layer["return_sequences"],
+                        stateful=layer["stateful"],
+                        input_shape=self.get_input_shape(self.input_options)
+                    ))
+                elif "is_output" in layer and layer["is_output"]:
+                    # Output layer should only output the last LSTM output
+                    self.model.add(SimpleRNN(
+                        units=layer["predict_n"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=False,
+                        stateful=layer["stateful"]
+                    ))
+                else:
+                    self.model.add(SimpleRNN(
+                        units=layer["units"], 
+                        activation=layer["activation"], 
+                        recurrent_activation=layer["recurrent_activation"],
+                        return_sequences=layer["return_sequences"],
+                        stateful=layer["stateful"]
+                    ))
             else:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
+                if "is_input" in layer and layer["is_input"]:
+                    self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=self.get_input_shape(self.input_options)))
+                elif "is_output" in layer and layer["is_output"]:
+                    self.model.add(Dense(units=self.model_options["predict_n"], activation=layer["activation"]))
+                else:
+                    self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
         #self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
         #self.model.add(Dense(units=8, activation="relu"))
         #self.model.add(Dense(units=1, activation="relu"))
@@ -157,10 +250,14 @@ class DenseNeuralNetwork(Model):
     def train(self, xs, ys):
         """Trains the model.
 
-        Args:
+        Args
             xs: A m-by-n NumPy data array of m data with n features.
             ys: A Numpy label array of m data.
         """
+
+        if (len(xs.shape) <= 2):
+            print(xs)
+            print(ys)
 
         # Initialize the evaluation_metric to its threshold so that the model must be trained
         # at least once
@@ -336,7 +433,10 @@ class DenseNeuralNetwork(Model):
     def get_model_display_name(self):
         """Returns model display name for the app."""
 
-        return "Dense Neural Network"
+        if "network_type" in self.model_options:
+            return "Neural Network, " + self.model_options["network_type"]
+        else:
+            return "Dense Neural Network"
 
     @staticmethod
     def get_all_models(stock_code, saved_model_dir):

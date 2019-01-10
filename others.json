@@ -1,0 +1,90 @@
+{
+    "models": [
+        {
+            "model": "linear_regression",
+            "stockCode": "GOOGL",
+            "modelOptions": {
+                "predict_n": 10
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                    {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
+        },
+        {
+            "model": "svr",
+            "stockCode": "GOOGL",
+            "modelOptions": {
+                "kernel": "rbf",
+                "degree": 3,
+                "gamma": "auto",
+                "coef0": 0.0,
+                "tol": 0.001,
+                "C": 1.0,
+                "epsilon": 0.1,
+                "shrinking": true,
+                "cache_size": 500.0,
+                "verbose": false,
+                "max_iter": -1,
+                "predict_n": 10
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                    {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
+        },
+        {
+            "model": "linear_index_regression",
+            "stock_code": "GOOGL",
+            "modelOptions": {
+                "predict_n": 10
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "index_price", "n": 10}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
+        },
+        {
+            "model": "svr_index_regression",
+            "stock_code": "GOOGL",
+            "modelOptions": {
+                "use_stock_price": false,
+                "n": 30,
+                "kernel": "rbf",
+                "degree": 3,
+                "gamma": "auto",
+                "coef0": 0.0,
+                "tol": 0.001,
+                "C": 1.0,
+                "epsilon": 0.1,
+                "shrinking": true,
+                "cache_size": 500.0,
+                "verbose": false,
+                "max_iter": -1,
+                "predict_n": 10
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "index_price", "n": 10}
+                ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
+        }
+    ]
+}
