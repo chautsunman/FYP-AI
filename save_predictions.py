@@ -2,6 +2,7 @@ import argparse
 from datetime import date
 import json
 import os
+import glob
 
 import firebase_admin
 from firebase_admin import credentials
@@ -18,6 +19,36 @@ from models.dnn_regression import DenseNeuralNetwork
 from build_dataset import build_dataset
 
 from train_models import SAVED_MODELS_DIR_MAP
+
+def get_saved_predictions(stock_code, location="local"):
+    """Gets saved predictions directly
+    
+    Args:
+        stock_code: Stock code specifying a stock.
+        location: local or cloud, for now only local has been implemented
+
+    Returns:
+        A dict with all predictions and models information.
+
+        Format:
+        {
+            "predictions": [
+                [p11, p12, ...],
+                [p21, p22, ...],
+                ...
+            ],
+            "models": [m1_info, m2_info, ...]
+        }
+    """
+
+    if not os.path.isdir("./saved_predictions/" + stock_code):
+        return {}
+
+    else:
+        list_of_predictions = glob.glob("./saved_predictions/" + stock_code + "/*.json")
+        latest_prediction = max(list_of_predictions)
+        with open(latest_prediction) as prediction:
+            return json.load(prediction)
 
 def get_predictions(stock_code):
     """Gets the predictions of a stock from all trained models.
