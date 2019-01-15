@@ -24,7 +24,7 @@
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 50, "stock_code": "GOOGL", "column": "adjusted_close"}
                 ],
                 "stock_codes": ["GOOGL"],
                 "stock_code": "GOOGL",
