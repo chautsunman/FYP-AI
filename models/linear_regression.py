@@ -209,7 +209,7 @@ class LinearRegression(Model):
                         models_data["models"][model_type]["general"][-1]["model_path"],
                         models_data["models"][model_type]["general"][-1]["model_name"])
                 ))
-            if len(models_data["models"][model_type][stock_code]) > 0:
+            if stock_code in models_data["models"][model_type] and len(models_data["models"][model_type][stock_code]) > 0:
                 models.append(LinearRegression(
                     models_data["modelTypes"][model_type]["modelOptions"],
                     models_data["modelTypes"][model_type]["inputOptions"],
