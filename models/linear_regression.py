@@ -6,14 +6,19 @@ import numpy as np
 from sklearn.metrics import mean_squared_error
 
 from models.model import Model
-from options import rand_all, cross_over_all, mutate_all
+from options import OPTION_TYPES, rand_all, cross_over_all, mutate_all
 
 class LinearRegression(Model):
     """Linear regression model."""
 
     MODEL = "linear_regression"
 
-    MODEL_OPTIONS_CONFIG = {}
+    MODEL_OPTIONS_CONFIG = {
+        "predict_n": {
+            "type": OPTION_TYPES["static"],
+            "value": 10
+        }
+    }
 
     def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
         """Initializes the model. Creates a new model or loads a saved model."""
@@ -44,7 +49,10 @@ class LinearRegression(Model):
             A NumPy array of the prediction.
         """
 
-        return self.model.predict(x).flatten()
+        predictions = self.model.predict(x)
+        if x.shape[0] == 1:
+            return predictions.flatten()
+        return predictions
 
     def save(self, saved_model_dir):
         """Saves the model in saved_model_dir.
@@ -252,7 +260,7 @@ class LinearRegression(Model):
 
         while len(new_models) < n:
             new_model_options = cross_over_all(LinearRegression.MODEL_OPTIONS_CONFIG, best_model_options)
-            new_model_options = mutate_all(LinearRegression.MODEL_OPTIONS_CONFIG, new_model_options, 0.2)
+            new_model_options = mutate_all(new_model_options, LinearRegression.MODEL_OPTIONS_CONFIG, 0.2)
             new_models.append(LinearRegression(
                 new_model_options,
                 {

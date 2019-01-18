@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 
+from build_dataset import build_dataset
+
 def evolution(ModelClass, iterations):
     """Evolution algorithm."""
 
@@ -28,7 +30,8 @@ def evolution(ModelClass, iterations):
         top_models = [models[i] for i in error_idx_sorted[:2]]
 
         # cross-over models and breed new models
-        models = ModelClass.evolve(top_models, 10)
+        if i < iterations - 1:
+            models = ModelClass.evolve(top_models, 10)
 
     # return the best model
     best_model_idx = np.argmin(errors)

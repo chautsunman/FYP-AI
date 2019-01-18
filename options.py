@@ -16,7 +16,7 @@ class DiscreteOption(object):
 
     @staticmethod
     def rand(option_config):
-        return np.random.choice(option_config["options"])
+        return option_config["options"][np.random.randint(len(option_config["options"]))]
 
     @staticmethod
     def mutate(option, option_config):
@@ -49,9 +49,11 @@ class StepOption(object):
 
     @staticmethod
     def rand(option_config):
-        return ((np.floor(np.random.rand() * (option_config["range"][1] - option_config["range"][0]) / option_config["step"]
-            + option_config["range"][0] / option_config["step"]) * option_config["step"]
-        )
+        return np.random.choice(np.arange(
+            option_config["range"][0],
+            option_config["range"][1] + option_config["step"],
+            option_config["step"]
+        ))
 
     @staticmethod
     def mutate(option, option_config):
@@ -106,7 +108,7 @@ def cross_over_all(config, options):
     for option in config:
         if config[option]["type"] == OPTION_TYPES["nested"]:
             new_options[option] = cross_over_all(
-                config[option]["option_configs"],
+                config[option]["option_config"],
                 [o[option] for o in options]
             )
         elif config[option]["type"] == OPTION_TYPES["array"]:

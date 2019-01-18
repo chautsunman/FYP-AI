@@ -14,7 +14,8 @@ from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
-from options import OPTION_TYPES, rand_all, cross_over_all, mutate_all
+from build_dataset import calculate_input_shape
+from options import OPTION_TYPES, rand_all, rand, mutate
 
 class DenseNeuralNetwork(Model):
     """Neural network."""
@@ -26,7 +27,24 @@ class DenseNeuralNetwork(Model):
             "type": OPTION_TYPES["nested"],
             "option_config": {
                 "layers": {
-                    "type": OPTION_TYPES["array"],
+                    "type": OPTION_TYPES["static"],
+                    "value": [
+                        {}
+                    ],
+                    "layer": {
+                        "units": {
+                            "type": OPTION_TYPES["discrete"],
+                            "option_config": {
+                                "options": [4, 8, 16, 32, 64, 128]
+                            }
+                        },
+                        "activation": {
+                            "type": OPTION_TYPES["discrete"],
+                            "option_config": {
+                                "options": ["relu", "tanh", "sigmoid", "linear"]
+                            }
+                        }
+                    },
                     "option_configs": [
                         {
                             "units": {
@@ -63,18 +81,19 @@ class DenseNeuralNetwork(Model):
                 "loss": {
                     "type": OPTION_TYPES["discrete"],
                     "option_config": {
-                        "options": [
-                            "mse", "mean_absolute_error", "mean_absolute_percentage_error", "mean_squared_logarithmic_error",
-                            "squared_hinge", "hinge"
-                        ]
+                        "options": ["mse"]
                     }
                 },
                 "optimizer": {
                     "type": OPTION_TYPES["discrete"],
                     "option_config": {
-                        "options": [
-                            "Nadam", "Adamax", "Adam", "Adadelta", "Adagrad", "RMSprop", "SGD"
-                        ]
+                        "options": ["sgd", "RMSprop", "Adagrad", "Adadelta", "Adam", "Adamax", "Nadam"]
+                    }
+                },
+                "learning_rate": {
+                    "type": OPTION_TYPES["discrete"],
+                    "option_config": {
+                        "options": [0.1, 0.01, 0.001, 0.0001]
                     }
                 },
                 "epochs": {
@@ -85,37 +104,48 @@ class DenseNeuralNetwork(Model):
                     }
                 },
                 "batch_size": {
-                    "type": OPTION_TYPES["step"],
+                    "type": OPTION_TYPES["discrete"],
                     "option_config": {
-                        "range": [10, 60],
-                        "step": 1
+                        "options": [1, 8, 16, 32, 64]
                     }
                 },
                 "metrics": {
                     "type": OPTION_TYPES["static"],
-                    "value": ["accuracy"]
+                    "value": ["mse"]
                 },
                 "evaluation_criteria": {
                     "type": OPTION_TYPES["nested"],
                     "option_config": {
                         "minimize": {
-                            "type": OPTION_TYPES["discrete"],
-                            "option_config": {
-                                "options": [True, False]
-                            }
+                            "type": OPTION_TYPES["static"],
+                            "value": False
                         },
                         "threshold": {
-                            "type": OPTION_TYPES["step"],
+                            "type": OPTION_TYPES["continuous"],
                             "option_config": {
-                                "range": [1, 10],
-                                "step": 1
+                                "range": [1, 10]
                             }
                         }
                     }
                 }
             }
+        },
+        "predict_n": {
+            "type": OPTION_TYPES["static"],
+            "value": 10
         }
     }
+
+    OPTIMIZER_MAP = {
+        "sgd": optimizers.SGD,
+        "RMSprop": optimizers.RMSprop,
+        "Adagrad": optimizers.Adagrad,
+        "Adadelta": optimizers.Adadelta,
+        "Adam": optimizers.Adam,
+        "Adamax": optimizers.Adamax,
+        "Nadam": optimizers.Nadam
+    }
+
     # Helper method to build the DNN model
     def build_model(self):
 
@@ -127,24 +157,36 @@ class DenseNeuralNetwork(Model):
         net = self.model_options["net"]
 
         # Specify the neural network configuration
-        for layer in net["layers"]:
-            if "is_input" in layer and layer["is_input"]:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"], input_shape=(layer["inputUnits"],)))
-            elif "is_output" in layer and layer["is_output"]:
-                self.model.add(Dense(units=self.model_options["predict_n"], activation=layer["activation"]))
-            else:
+        if len(net["layers"]) == 1:
+            self.model.add(Dense(
+                units=self.model_options["predict_n"],
+                input_shape=(self.input_shape, )
+            ))
+        else:
+            self.model.add(Dense(
+                units=net["layers"][0]["units"],
+                activation=net["layers"][0]["activation"],
+                input_shape=(self.input_shape, )
+            ))
+            for layer in net["layers"][1:-1]:
                 self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
+            self.model.add(Dense(
+                units=self.model_options["predict_n"]
+            ))
         #self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
         #self.model.add(Dense(units=8, activation="relu"))
         #self.model.add(Dense(units=1, activation="relu"))
 
         #self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
-        self.model.compile(loss=net["loss"], optimizer=net["optimizer"], metrics=net["metrics"])
+        optimizer = self.OPTIMIZER_MAP[net["optimizer"]](lr=net["learning_rate"])
+        self.model.compile(loss=net["loss"], optimizer=optimizer, metrics=net["metrics"])
 
     def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
         """Initializes the model. Creates a new model or loads a saved model."""
 
         Model.__init__(self, model_options, input_options, stock_code=stock_code)
+
+        self.input_shape = calculate_input_shape(input_options)
 
         if not load or saved_model_dir is None:
             self.build_model()
@@ -162,21 +204,23 @@ class DenseNeuralNetwork(Model):
             ys: A Numpy label array of m data.
         """
 
-        # Initialize the evaluation_metric to its threshold so that the model must be trained
-        # at least once
-        evaluation_metric = self.model_options["net"]["evaluation_criteria"]["threshold"]
+        self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
 
-        # If we aim to minimize the evaluation criteria, e.g. mse, retrain until criteria < threshold
-        if self.model_options["net"]["evaluation_criteria"]["minimize"]:
-            while evaluation_metric >= self.model_options["net"]["evaluation_criteria"]["threshold"]:
-                self.build_model()
-                self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
-                evaluation_metric = self.model.evaluate(xs, ys)[1]
-        else:
-            while evaluation_metric <= self.model_options["net"]["evaluation_criteria"]["threshold"]:
-                self.build_model()
-                self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
-                evaluation_metric = self.model.evaluate(xs, ys)[1]
+        # # Initialize the evaluation_metric to its threshold so that the model must be trained
+        # # at least once
+        # evaluation_metric = self.model_options["net"]["evaluation_criteria"]["threshold"]
+
+        # # If we aim to minimize the evaluation criteria, e.g. mse, retrain until criteria < threshold
+        # if self.model_options["net"]["evaluation_criteria"]["minimize"]:
+        #     while evaluation_metric >= self.model_options["net"]["evaluation_criteria"]["threshold"]:
+        #         self.build_model()
+        #         self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
+        #         evaluation_metric = self.model.evaluate(xs, ys)[1]
+        # else:
+        #     while evaluation_metric <= self.model_options["net"]["evaluation_criteria"]["threshold"]:
+        #         self.build_model()
+        #         self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
+        #         evaluation_metric = self.model.evaluate(xs, ys)[1]
 
     def predict(self, x):
         """Predicts.
@@ -185,7 +229,10 @@ class DenseNeuralNetwork(Model):
             A NumPy array of the prediction.
         """
 
-        return self.model.predict(x).flatten()
+        predictions = self.model.predict(x)
+        if x.shape[0] == 1:
+            return predictions.flatten()
+        return predictions
 
     # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
@@ -338,6 +385,9 @@ class DenseNeuralNetwork(Model):
 
         return "Dense Neural Network"
 
+    def error(self, y_true, y_pred):
+        return mean_squared_error(y_true, y_pred)
+
     @staticmethod
     def get_all_models(stock_code, saved_model_dir):
         """Returns an array of all different types saved models by searching the models data file."""
@@ -386,7 +436,8 @@ class DenseNeuralNetwork(Model):
                     "stock_codes": ["GOOGL"],
                     "stock_code": "GOOGL",
                     "column": "adjusted_close"
-                }
+                },
+                "GOOGL"
             )
             for _ in range(n)
         ]
@@ -400,8 +451,50 @@ class DenseNeuralNetwork(Model):
         best_model_options = [model.model_options for model in models]
 
         while len(new_models) < n:
-            new_model_options = cross_over_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG, best_model_options)
-            new_model_options = mutate_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG, new_model_options, 0.2)
+            new_model_options = np.random.choice(best_model_options)
+
+            change_option = np.random.choice([
+                "add_layer",
+                "remove_layer",
+                "change_units",
+                "change_activation",
+                "loss",
+                "optimizer",
+                "learning_rate",
+                "epochs",
+                "batch_size"
+            ])
+
+            if change_option == "add_layer":
+                new_model_options["net"]["layers"].insert(
+                    np.random.randint(0, len(new_model_options["net"]["layers"])),
+                    rand_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"])
+                )
+            elif change_option == "remove_layer":
+                if len(new_model_options["net"]["layers"]) > 1:
+                    new_model_options["net"]["layers"].pop(np.random.randint(0, len(new_model_options["net"]["layers"]) - 1))
+            elif change_option == "change_units":
+                if len(new_model_options["net"]["layers"]) > 1:
+                    change_layer_idx = np.random.randint(0, len(new_model_options["net"]["layers"]) - 1)
+                    new_model_options["net"]["layers"][change_layer_idx]["units"] = rand(
+                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["units"]["type"],
+                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["units"]["option_config"]
+                    )
+            elif change_option == "change_activation":
+                if len(new_model_options["net"]["layers"]) > 1:
+                    change_layer_idx = np.random.randint(0, len(new_model_options["net"]["layers"]) - 1)
+                    new_model_options["net"]["layers"][change_layer_idx]["activation"] = rand(
+                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["activation"]["type"],
+                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["activation"]["option_config"]
+                    )
+            elif change_option in ["loss", "optimizer", "learning_rate", "epochs", "batch_size"]:
+                new_model_options["net"][change_option] = mutate(
+                    DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"][change_option]["type"],
+                    new_model_options["net"][change_option],
+                    DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"][change_option]["option_config"],
+                    1.0
+                )
+
             new_models.append(DenseNeuralNetwork(
                 new_model_options,
                 {
@@ -412,7 +505,8 @@ class DenseNeuralNetwork(Model):
                     "stock_codes": ["GOOGL"],
                     "stock_code": "GOOGL",
                     "column": "adjusted_close"
-                }
+                },
+                "GOOGL"
             ))
 
         return new_models

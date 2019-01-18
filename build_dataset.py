@@ -114,3 +114,16 @@ def build_dataset(input_config, predict_n, training):
                 X.append(np.array([[stock_data[config["stock_code"]][config["column"]][-config["n"]:].sum() / config["n"]]]))
 
         return np.concatenate(X, axis=1)
+
+def calculate_input_shape(input_options):
+    """Calculate the input shape."""
+
+    shape = 0
+
+    for config in input_options["config"]:
+        if config["type"] == "lookback":
+            shape += config["n"]
+        elif config["type"] == "moving_avg":
+            shape += 1
+
+    return shape
