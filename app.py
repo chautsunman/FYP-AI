@@ -11,7 +11,7 @@ from flask_cors import cross_origin
 import pandas as pd
 
 from upload_stock_prices import get_stock_prices
-from save_predictions import get_predictions
+from save_predictions import get_predictions, get_saved_predictions
 
 app = Flask(__name__)
 
@@ -34,6 +34,8 @@ def stock_prices(stock_code):
     "methods": "GET"
 })
 def predict(stock_code):
-    predictions = get_predictions(stock_code)
+    #predictions = get_predictions(stock_code)
+    # Get predictions from local predictions instead
+    predictions = get_saved_predictions(stock_code)
 
     return jsonify({"success": True, "predictions": predictions["predictions"], "models": predictions["models"]})

@@ -2,23 +2,23 @@
     "models": [
         {
             "model": "linear_regression",
-            "stockCode": "GOOGL",
+            "stockCode": "AAPL",
             "modelOptions": {
                 "predict_n": 10
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
-                    {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 10, "stock_code": "AAPL", "column": "adjusted_close"},
+                    {"type": "moving_avg", "n": 10, "stock_code": "AAPL", "column": "adjusted_close"}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close"
             }
         },
         {
             "model": "svr",
-            "stockCode": "GOOGL",
+            "stockCode": "AAPL",
             "modelOptions": {
                 "kernel": "rbf",
                 "degree": 3,
@@ -35,17 +35,17 @@
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
-                    {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 10, "stock_code": "AAPL", "column": "adjusted_close"},
+                    {"type": "moving_avg", "n": 10, "stock_code": "AAPL", "column": "adjusted_close"}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close"
             }
         },
         {
             "model": "linear_index_regression",
-            "stock_code": "GOOGL",
+            "stock_code": "AAPL",
             "modelOptions": {
                 "predict_n": 10
             },
@@ -53,14 +53,14 @@
                 "config": [
                     {"type": "index_price", "n": 10}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close"
             }
         },
         {
             "model": "svr_index_regression",
-            "stock_code": "GOOGL",
+            "stock_code": "AAPL",
             "modelOptions": {
                 "use_stock_price": false,
                 "n": 30,
@@ -81,14 +81,14 @@
                 "config": [
                     {"type": "index_price", "n": 10}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close"
             }
         },
         {
             "model": "dnn",
-            "stockCode": "GOOGL",
+            "stockCode": "AAPL",
             "modelOptions": {
                 "net": {
                     "layers": [
@@ -110,16 +110,16 @@
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 10, "stock_code": "AAPL", "column": "adjusted_close"}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close"
             }
         },
 		{
             "model": "dnn",
-            "stockCode": "GOOGL",
+            "stockCode": "AAPL",
             "modelOptions": {
 				"network_type": "LSTM",
                 "net": {
@@ -151,10 +151,10 @@
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 1, "stock_code": "AAPL", "column": "adjusted_close"}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close",
 				"time_window": 10,
 				"time_window_offset": 1
@@ -162,7 +162,7 @@
         },
 		{
             "model": "dnn",
-            "stockCode": "GOOGL",
+            "stockCode": "AAPL",
             "modelOptions": {
 				"network_type": "SimpleRNN",
                 "net": {
@@ -193,10 +193,10 @@
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 1, "stock_code": "AAPL", "column": "adjusted_close"}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close",
 				"time_window": 10,
 				"time_window_offset": 1
@@ -204,13 +204,13 @@
         },
 		{
             "model": "dnn",
-            "stockCode": "GOOGL",
+            "stockCode": "AAPL",
             "modelOptions": {
 				"network_type": "GRU",
                 "net": {
                     "layers": [
 						{
-							"layer_type": "LSTM", 
+							"layer_type": "GRU", 
 							"units": 10, 
 							"activation": "relu", 
 							"recurrent_activation": "sigmoid", 
@@ -236,10 +236,10 @@
             },
             "inputOptions": {
                 "config": [
-                    {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    {"type": "lookback", "n": 1, "stock_code": "AAPL", "column": "adjusted_close"}
                 ],
-                "stock_codes": ["GOOGL"],
-                "stock_code": "GOOGL",
+                "stock_codes": ["AAPL"],
+                "stock_code": "AAPL",
                 "column": "adjusted_close",
 				"time_window": 10,
 				"time_window_offset": 1
