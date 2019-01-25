@@ -6,7 +6,7 @@ import os
 
 from keras.models import Sequential
 from keras.models import load_model
-from keras.layers import Dense
+from keras.layers import Dense, LSTM, SimpleRNN, GRU
 from keras import optimizers
 
 import numpy as np
@@ -14,7 +14,7 @@ from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
-from build_dataset import calculate_input_shape
+from build_dataset import get_input_shape
 from options import OPTION_TYPES, rand_all, rand, mutate
 
 class DenseNeuralNetwork(Model):
@@ -62,11 +62,24 @@ class DenseNeuralNetwork(Model):
                                         "tanh", "softsign", "softplus", "selu", "elu", "softmax"
                                     ]
                                 }
+                            },
+                            "recurrent_activation": {
+                                "type": OPTION_TYPES["discrete"],
+                                "option_config": {
+                                    "options": ["hard_sigmoid", "sigmoid"]
+                                }
+                            },
+                            "stateful": {
+                                "type": OPTION_TYPES["discrete"],
+                                "option_config": {
+                                    "options": [True, False]
+                                }
                             }
                             # "is_input": {
                             #     "type": OPTION_TYPES["discrete"],
                             #     "option_config": {
                             #         "options": [True, False]
+                            #     }
                             # },
                             # "inputUnits": {
                             #     "type": OPTION_TYPES["step"],
@@ -138,13 +151,141 @@ class DenseNeuralNetwork(Model):
 
     OPTIMIZER_MAP = {
         "sgd": optimizers.SGD,
-        "RMSprop": optimizers.RMSprop,
-        "Adagrad": optimizers.Adagrad,
-        "Adadelta": optimizers.Adadelta,
-        "Adam": optimizers.Adam,
-        "Adamax": optimizers.Adamax,
-        "Nadam": optimizers.Nadam
+        "rmsprop": optimizers.RMSprop,
+        "adagrad": optimizers.Adagrad,
+        "adadelta": optimizers.Adadelta,
+        "adam": optimizers.Adam,
+        "adamax": optimizers.Adamax,
+        "nadam": optimizers.Nadam
     }
+
+    def get_layer(self, layer_config, layer_type, is_input=False, is_output=False):
+        """Return a layer based on layer_config and layer_type."""
+
+        if layer_type == "SimpleRNN":
+            if is_input and is_output:
+                return SimpleRNN(
+                    units=self.model_options["predict_n"],
+                    activation=layer_config["activation"],
+                    return_sequences=False,
+                    stateful=layer_config["stateful"],
+                    input_shape=self.input_shape
+                )
+            elif is_input:
+                return SimpleRNN(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    return_sequences=layer_config["return_sequences"],
+                    stateful=layer_config["stateful"],
+                    input_shape=self.input_shape
+                )
+            elif is_output:
+                return SimpleRNN(
+                    units=self.model_options["predict_n"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=False,
+                    stateful=layer_config["stateful"]
+                )
+            else:
+                return SimpleRNN(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=layer_config["return_sequences"],
+                    stateful=layer_config["stateful"]
+                )
+        elif layer_type == "LSTM":
+            if is_input and is_output:
+                return LSTM(
+                    units=self.model_options["predict_n"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=False,
+                    stateful=layer_config["stateful"],
+                    input_shape=self.input_shape
+                )
+            elif is_input:
+                return LSTM(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=layer_config["return_sequences"],
+                    stateful=layer_config["stateful"],
+                    input_shape=self.input_shape
+                )
+            elif is_output:
+                return LSTM(
+                    units=layer_config["predict_n"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=False,
+                    stateful=layer_config["stateful"]
+                )
+            else:
+                return LSTM(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=layer_config["return_sequences"],
+                    stateful=layer_config["stateful"]
+                )
+        elif layer_type == "GRU":
+            if is_input and is_output:
+                return GRU(
+                    units=self.model_options["predict_n"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=False,
+                    stateful=layer_config["stateful"],
+                    input_shape=self.input_shape
+                )
+            elif is_input:
+                return GRU(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=layer_config["return_sequences"],
+                    stateful=layer_config["stateful"],
+                    input_shape=self.input_shape
+                )
+            elif is_output:
+                return GRU(
+                    units=layer_config["predict_n"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=False,
+                    stateful=layer_config["stateful"]
+                )
+            else:
+                return GRU(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    recurrent_activation=layer_config["recurrent_activation"],
+                    return_sequences=layer_config["return_sequences"],
+                    stateful=layer_config["stateful"]
+                )
+        else:
+            if is_input and is_output:
+                return Dense(
+                    units=self.model_options["predict_n"],
+                    input_shape=self.input_shape
+                )
+            elif is_input:
+                return Dense(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"],
+                    input_shape=self.input_shape
+                )
+            elif is_output:
+                return Dense(
+                    units=self.model_options["predict_n"]
+                )
+            else:
+                return Dense(
+                    units=layer_config["units"],
+                    activation=layer_config["activation"]
+                )
 
     # Helper method to build the DNN model
     def build_model(self):
@@ -158,27 +299,30 @@ class DenseNeuralNetwork(Model):
 
         # Specify the neural network configuration
         if len(net["layers"]) == 1:
-            self.model.add(Dense(
-                units=self.model_options["predict_n"],
-                input_shape=(self.input_shape, )
+            self.model.add(self.get_layer(
+                net["layers"][0],
+                net["layers"][0]["type"] if "type" in net["layers"] else "dense",
+                is_input=True,
+                is_output=True
             ))
         else:
-            self.model.add(Dense(
-                units=net["layers"][0]["units"],
-                activation=net["layers"][0]["activation"],
-                input_shape=(self.input_shape, )
+            self.model.add(self.get_layer(
+                net["layers"][0],
+                net["layers"][0]["type"] if "type" in net["layers"] else "dense",
+                is_input=True
             ))
             for layer in net["layers"][1:-1]:
-                self.model.add(Dense(units=layer["units"], activation=layer["activation"]))
-            self.model.add(Dense(
-                units=self.model_options["predict_n"]
+                self.model.add(self.get_layer(
+                    layer,
+                    layer["type"] if "type" in net["layers"] else "dense"
+                ))
+            self.model.add(self.get_layer(
+                net["layers"][-1],
+                net["layers"][-1]["type"] if "type" in net["layers"] else "dense",
+                is_output=True
             ))
-        #self.model.add(Dense(units=12, activation="relu", input_shape=(self.model_options["lookback"],)))
-        #self.model.add(Dense(units=8, activation="relu"))
-        #self.model.add(Dense(units=1, activation="relu"))
 
-        #self.model.compile(loss='mean_squared_error', optimizer='adam', metrics=['mean_squared_error'])
-        optimizer = self.OPTIMIZER_MAP[net["optimizer"]](lr=net["learning_rate"])
+        optimizer = self.OPTIMIZER_MAP[net["optimizer"].lower()](lr=net["learning_rate"])
         self.model.compile(loss=net["loss"], optimizer=optimizer, metrics=net["metrics"])
 
     def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
@@ -186,7 +330,7 @@ class DenseNeuralNetwork(Model):
 
         Model.__init__(self, model_options, input_options, stock_code=stock_code)
 
-        self.input_shape = calculate_input_shape(input_options)
+        self.input_shape = get_input_shape(input_options)
 
         if not load or saved_model_dir is None:
             self.build_model()
@@ -383,7 +527,10 @@ class DenseNeuralNetwork(Model):
     def get_model_display_name(self):
         """Returns model display name for the app."""
 
-        return "Dense Neural Network"
+        if "network_type" in self.model_options:
+            return "Neural Network, " + self.model_options["network_type"]
+        else:
+            return "Dense Neural Network"
 
     def error(self, y_true, y_pred):
         return mean_squared_error(y_true, y_pred)
@@ -409,7 +556,7 @@ class DenseNeuralNetwork(Model):
                         models_data["models"][model_type]["general"][-1]["model_path"],
                         models_data["models"][model_type]["general"][-1]["model_name"])
                 ))
-            if len(models_data["models"][model_type][stock_code]) > 0:
+            if stock_code in models_data["models"][model_type] and len(models_data["models"][model_type][stock_code]) > 0:
                 models.append(DenseNeuralNetwork(
                     models_data["modelTypes"][model_type]["modelOptions"],
                     models_data["modelTypes"][model_type]["inputOptions"],

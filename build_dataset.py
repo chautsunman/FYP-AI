@@ -56,20 +56,22 @@ def build_dataset(input_config, predict_n, training):
                 ]
             }
             Refer to train_models_sample.json.
+
         predict_n: Number of days of stock prices to predict
         training: True to get the training dataset, False to get the features for prediction.
 
     Returns:
         A tuple of m-data-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training,
-        or a 1-by-number-of-features NumPy array for prediction.
+        or a tuple of m-data-by-t-timesteps-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training (if RNN/LSTM)
+        or a 1-by-number-of-features NumPy array for prediction
     """
 
     stock_data = {}
 
     X = []
 
-    for stock_code in input_config['stock_codes']:
-        stock_data[stock_code] = pd.read_csv('data/stock_prices/' + stock_code + '.csv', index_col=0).iloc[::-1]
+    for stock_code in input_config["stock_codes"]:
+        stock_data[stock_code] = pd.read_csv("data/stock_prices/" + stock_code + ".csv", index_col=0).iloc[::-1]
 
     predict_data = stock_data[input_config["stock_code"]]
     predict_column = input_config["column"]
@@ -88,16 +90,26 @@ def build_dataset(input_config, predict_n, training):
             y = y.iloc[-input_config["config"][0]["n"]:, 0].values
             return x, y
 
-        for config in input_config['config']:
-            if config['type'] == 'lookback':
-                X.append(build_lookback(stock_data[config['stock_code']][[config["column"]]], config["column"], config["n"]))
+        for config in input_config["config"]:
+            if config["type"] == "lookback":
+                X.append(build_lookback(stock_data[config["stock_code"]][[config["column"]]], config["column"], config["n"]))
 
-            elif config['type'] == 'moving_avg':
-                X.append(build_moving_avg(stock_data[config['stock_code']][[config["column"]]], config["column"], config["n"]))
+            elif config["type"] == "moving_avg":
+                X.append(build_moving_avg(stock_data[config["stock_code"]][[config["column"]]], config["column"], config["n"]))
 
         data = y.join(X, how="inner")
 
-        return data.iloc[:, predict_n:].values, data.iloc[:, :predict_n].values
+        if "time_window" not in input_config:
+            return data.iloc[:, predict_n:].values, data.iloc[:, :predict_n].values
+        else:
+            time_window = input_config["time_window"]
+            x = data.iloc[:, predict_n:].values
+            sample_size = x.shape[0]
+            x = np.stack( [ x[i:i+time_window] for i in range(sample_size - time_window) ] )
+
+            y = data.iloc[:, :predict_n].values[time_window:]
+
+            return x, y
 
     else:
         # Prediction
@@ -106,24 +118,48 @@ def build_dataset(input_config, predict_n, training):
                 input_config["config"][0]["n"] + 1,
                 input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
 
-        for config in input_config['config']:
-            if config['type'] == 'lookback':
-                X.append(stock_data[config["stock_code"]][config["column"]][-config["n"]:].values.reshape(1, -1))
+        if "time_window" not in input_config:
+            for config in input_config["config"]:
+                if config["type"] == "lookback":
+                    X.append(stock_data[config["stock_code"]][config["column"]][-config["n"]:].values.reshape(1, -1))
 
-            elif config['type'] == 'moving_avg':
-                X.append(np.array([[stock_data[config["stock_code"]][config["column"]][-config["n"]:].sum() / config["n"]]]))
+                elif config["type"] == "moving_avg":
+                    X.append(np.array([[stock_data[config["stock_code"]][config["column"]][-config["n"]:].sum() / config["n"]]]))
 
-        return np.concatenate(X, axis=1)
+            return np.concatenate(X, axis=1)
 
-def calculate_input_shape(input_options):
-    """Calculate the input shape."""
+        else:
+            time_window = input_config["time_window"]
+            sample_size = stock_data[input_config["stock_code"]].shape[0]
+            for config in input_config["config"]:
+                if config["type"] == "lookback":
+                    features = []
+                    for i in range(sample_size - config["n"] - time_window + 1, sample_size - config["n"] + 1):
+                        features.append(stock_data[config["stock_code"]][config["column"]][i:i+config["n"]].values.reshape(1, 1, -1))
+                    X.append(np.concatenate(features, axis=1))
 
-    shape = 0
+                elif config["type"] == "moving_avg":
+                    features = []
+                    for i in range(sample_size - config["n"] - time_window + 1, sample_size - config["n"] + 1):
+                        features.append(np.array([[[stock_data[config["stock_code"]][config["column"]][i:i+config["n"]].sum() / config["n"]]]]))
+                    X.append(np.concatenate(features, axis=1))
 
-    for config in input_options["config"]:
-        if config["type"] == "lookback":
-            shape += config["n"]
-        elif config["type"] == "moving_avg":
-            shape += 1
+            return np.concatenate(X, axis=2)
 
-    return shape
+def get_input_shape(input_options):
+    """Returns the shape of the input as a tuple, can be
+        1-D (for scikit-learn models & simple DNNs) or 2-D (for LSTM)
+    """
+    input_shape = [0]
+    for config_item in input_options["config"]:
+        if config_item["type"] == "lookback":
+            input_shape[-1] += config_item["n"]
+        elif config_item["type"] == "moving_avg":
+            input_shape[-1] += 1
+        elif config_item["type"] == "index_price":
+            input_shape[-1] += config_item["n"]
+
+    if "time_window" in input_options:
+        input_shape.insert(0, input_options["time_window"])
+
+    return tuple(input_shape)
