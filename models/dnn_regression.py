@@ -1,3 +1,4 @@
+import copy
 from os import path
 import pickle
 import json
@@ -22,6 +23,8 @@ class DenseNeuralNetwork(Model):
 
     MODEL = "dnn"
 
+    NETWORK_TYPES = ["dense", "SimpleRNN", "LSTM", "GRU"]
+
     MODEL_OPTIONS_CONFIG = {
         "net": {
             "type": OPTION_TYPES["nested"],
@@ -31,76 +34,19 @@ class DenseNeuralNetwork(Model):
                     "value": [
                         {}
                     ],
-                    "layer": {
-                        "units": {
-                            "type": OPTION_TYPES["discrete"],
-                            "option_config": {
-                                "options": [4, 8, 16, 32, 64, 128]
-                            }
-                        },
-                        "activation": {
-                            "type": OPTION_TYPES["discrete"],
-                            "option_config": {
-                                "options": ["relu", "tanh", "sigmoid", "linear"]
-                            }
-                        }
-                    },
-                    "option_configs": [
-                        {
-                            "units": {
-                                "type": OPTION_TYPES["step"],
-                                "option_config": {
-                                    "range": [1, 10],
-                                    "step": 1
-                                }
-                            },
-                            "activation": {
-                                "type": OPTION_TYPES["discrete"],
-                                "option_config": {
-                                    "options": [
-                                        "relu", "linear", "exponential", "hard_sigmoid", "sigmoid",
-                                        "tanh", "softsign", "softplus", "selu", "elu", "softmax"
-                                    ]
-                                }
-                            },
-                            "recurrent_activation": {
-                                "type": OPTION_TYPES["discrete"],
-                                "option_config": {
-                                    "options": ["hard_sigmoid", "sigmoid"]
-                                }
-                            },
-                            "stateful": {
-                                "type": OPTION_TYPES["discrete"],
-                                "option_config": {
-                                    "options": [True, False]
-                                }
-                            }
-                            # "is_input": {
-                            #     "type": OPTION_TYPES["discrete"],
-                            #     "option_config": {
-                            #         "options": [True, False]
-                            #     }
-                            # },
-                            # "inputUnits": {
-                            #     "type": OPTION_TYPES["step"],
-                            #     "option_config": {
-                            #         "range": [10, 20],
-                            #         "step": 5
-                            #     }
-                            # }
-                        }
-                    ]
                 },
                 "loss": {
-                    "type": OPTION_TYPES["discrete"],
+                    "type": OPTION_TYPES["static"],
+                    "value": "mse",
                     "option_config": {
                         "options": ["mse"]
                     }
                 },
                 "optimizer": {
-                    "type": OPTION_TYPES["discrete"],
+                    "type": OPTION_TYPES["static"],
+                    "value": "Adam",
                     "option_config": {
-                        "options": ["sgd", "RMSprop", "Adagrad", "Adadelta", "Adam", "Adamax", "Nadam"]
+                        "options": ["sgd", "RMSprop", "Adam"]
                     }
                 },
                 "learning_rate": {
@@ -110,42 +56,136 @@ class DenseNeuralNetwork(Model):
                     }
                 },
                 "epochs": {
-                    "type": OPTION_TYPES["step"],
-                    "option_config": {
-                        "range": [1, 10],
-                        "step": 1
-                    }
+                    "type": OPTION_TYPES["static"],
+                    "value": 10
                 },
                 "batch_size": {
                     "type": OPTION_TYPES["discrete"],
                     "option_config": {
-                        "options": [1, 8, 16, 32, 64]
+                        "options": [8, 16, 32, 64]
                     }
                 },
                 "metrics": {
                     "type": OPTION_TYPES["static"],
                     "value": ["mse"]
-                },
-                "evaluation_criteria": {
-                    "type": OPTION_TYPES["nested"],
-                    "option_config": {
-                        "minimize": {
-                            "type": OPTION_TYPES["static"],
-                            "value": False
-                        },
-                        "threshold": {
-                            "type": OPTION_TYPES["continuous"],
-                            "option_config": {
-                                "range": [1, 10]
-                            }
-                        }
-                    }
                 }
             }
         },
         "predict_n": {
             "type": OPTION_TYPES["static"],
             "value": 10
+        }
+    }
+
+    # options for each layer type
+    LAYER_CONFIG = {
+        "dense": {
+            "layer_type": {
+                "type": OPTION_TYPES["static"],
+                "value": "dense"
+            },
+            "units": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": [4, 8, 16, 32, 64, 128]
+                }
+            },
+            "activation": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": ["relu", "tanh", "sigmoid", "linear"]
+                }
+            }
+        },
+        "SimpleRNN": {
+            "layer_type": {
+                "type": OPTION_TYPES["static"],
+                "value": "SimpleRNN"
+            },
+            "units": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": [4, 8, 16, 32, 64, 128]
+                }
+            },
+            "activation": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": ["relu", "tanh", "sigmoid", "linear"]
+                }
+            },
+            "return_sequences": {
+                "type": OPTION_TYPES["static"],
+                "value": True
+            },
+            "stateful": {
+                "type": OPTION_TYPES["static"],
+                "value": False
+            }
+        },
+        "LSTM": {
+            "layer_type": {
+                "type": OPTION_TYPES["static"],
+                "value": "LSTM"
+            },
+            "units": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": [4, 8, 16, 32, 64, 128]
+                }
+            },
+            "activation": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": ["relu", "tanh", "sigmoid", "linear"]
+                }
+            },
+            "recurrent_activation": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": ["hard_sigmoid", "sigmoid"]
+                }
+            },
+            "return_sequences": {
+                "type": OPTION_TYPES["static"],
+                "value": True
+            },
+            "stateful": {
+                "type": OPTION_TYPES["static"],
+                "value": False
+            }
+        },
+        "GRU": {
+            "layer_type": {
+                "type": OPTION_TYPES["static"],
+                "value": "GRU"
+            },
+            "units": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": [4, 8, 16, 32, 64, 128]
+                }
+            },
+            "activation": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": ["relu", "tanh", "sigmoid", "linear"]
+                }
+            },
+            "recurrent_activation": {
+                "type": OPTION_TYPES["discrete"],
+                "option_config": {
+                    "options": ["hard_sigmoid", "sigmoid"]
+                }
+            },
+            "return_sequences": {
+                "type": OPTION_TYPES["static"],
+                "value": True
+            },
+            "stateful": {
+                "type": OPTION_TYPES["static"],
+                "value": False
+            }
         }
     }
 
@@ -157,6 +197,97 @@ class DenseNeuralNetwork(Model):
         "adam": optimizers.Adam,
         "adamax": optimizers.Adamax,
         "nadam": optimizers.Nadam
+    }
+
+    # initial layers for each network type
+    INITIAL_LAYERS = {
+        "dense": [
+            {
+                "layer_type": "dense"
+            }
+        ],
+        "SimpleRNN": [
+            {
+                "layer_type": "SimpleRNN",
+                "units": 10,
+                "activation": "relu",
+                "return_sequences": True,
+                "stateful": False
+            },
+            {
+                "layer_type": "dense"
+            }
+        ],
+        "LSTM": [
+            {
+                "layer_type": "LSTM",
+                "units": 10,
+                "activation": "relu",
+                "recurrent_activation": "hard_sigmoid",
+                "return_sequences": True,
+                "stateful": False
+            },
+            {
+                "layer_type": "dense"
+            }
+        ],
+        "GRU": [
+            {
+                "layer_type": "GRU",
+                "units": 10,
+                "activation": "relu",
+                "recurrent_activation": "hard_sigmoid",
+                "return_sequences": True,
+                "stateful": False
+            },
+            {
+                "layer_type": "dense"
+            }
+        ]
+    }
+
+    # mutations for each network type
+    MUTATIONS = {
+        "dense": [
+            "add_dense_layer",
+            "remove_dense_layer",
+            "change_units",
+            "change_activation",
+            "learning_rate",
+            "batch_size"
+        ],
+        "SimpleRNN": [
+            "add_dense_layer",
+            "remove_dense_layer",
+            "add_rnn_layer",
+            "remove_rnn_layer",
+            "change_units",
+            "change_activation",
+            "learning_rate",
+            "batch_size"
+        ],
+        "LSTM": [
+            "add_dense_layer",
+            "remove_dense_layer",
+            "add_lstm_layer",
+            "remove_lstm_layer",
+            "change_units",
+            "change_activation",
+            "change_recurrent_activation",
+            "learning_rate",
+            "batch_size"
+        ],
+        "GRU": [
+            "add_dense_layer",
+            "remove_dense_layer",
+            "add_gru_layer",
+            "remove_gru_layer",
+            "change_units",
+            "change_activation",
+            "change_recurrent_activation",
+            "learning_rate",
+            "batch_size"
+        ]
     }
 
     def get_layer(self, layer_config, layer_type, is_input=False, is_output=False):
@@ -183,7 +314,6 @@ class DenseNeuralNetwork(Model):
                 return SimpleRNN(
                     units=self.model_options["predict_n"],
                     activation=layer_config["activation"],
-                    recurrent_activation=layer_config["recurrent_activation"],
                     return_sequences=False,
                     stateful=layer_config["stateful"]
                 )
@@ -191,7 +321,6 @@ class DenseNeuralNetwork(Model):
                 return SimpleRNN(
                     units=layer_config["units"],
                     activation=layer_config["activation"],
-                    recurrent_activation=layer_config["recurrent_activation"],
                     return_sequences=layer_config["return_sequences"],
                     stateful=layer_config["stateful"]
                 )
@@ -301,24 +430,24 @@ class DenseNeuralNetwork(Model):
         if len(net["layers"]) == 1:
             self.model.add(self.get_layer(
                 net["layers"][0],
-                net["layers"][0]["type"] if "type" in net["layers"] else "dense",
+                net["layers"][0]["layer_type"] if "layer_type" in net["layers"][0] else "dense",
                 is_input=True,
                 is_output=True
             ))
         else:
             self.model.add(self.get_layer(
                 net["layers"][0],
-                net["layers"][0]["type"] if "type" in net["layers"] else "dense",
+                net["layers"][0]["layer_type"] if "layer_type" in net["layers"][0] else "dense",
                 is_input=True
             ))
             for layer in net["layers"][1:-1]:
                 self.model.add(self.get_layer(
                     layer,
-                    layer["type"] if "type" in net["layers"] else "dense"
+                    layer["layer_type"] if "layer_type" in layer else "dense"
                 ))
             self.model.add(self.get_layer(
                 net["layers"][-1],
-                net["layers"][-1]["type"] if "type" in net["layers"] else "dense",
+                net["layers"][-1]["layer_type"] if "layer_type" in net["layers"][-1] else "dense",
                 is_output=True
             ))
 
@@ -571,23 +700,183 @@ class DenseNeuralNetwork(Model):
         return models
 
     @staticmethod
-    def random_models(n):
-        return [
-            DenseNeuralNetwork(
-                rand_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG),
-                {
+    def random_models(n, network_type):
+        models = []
+
+        for _ in range(n):
+            model_options = rand_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG)
+            model_options["network_type"] = network_type
+            model_options["net"]["layers"] = DenseNeuralNetwork.INITIAL_LAYERS[network_type]
+
+            input_options = {}
+            if network_type == "dense":
+                input_options = {
                     "config": [
-                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
                     ],
                     "stock_codes": ["GOOGL"],
                     "stock_code": "GOOGL",
                     "column": "adjusted_close"
-                },
+                }
+            elif network_type in ["SimpleRNN", "LSTM", "GRU"]:
+                input_options = {
+                    "config": [
+                        {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close",
+                    "time_window": 10,
+                    "time_window_offset": 1
+                }
+
+            models.append(DenseNeuralNetwork(
+                model_options,
+                input_options,
                 "GOOGL"
+            ))
+
+        return models
+
+    @staticmethod
+    def evolve_model_options(parent_model_options, mutation):
+        new_model_options = copy.deepcopy(parent_model_options)
+
+        network_type = new_model_options["network_type"]
+
+        parent_net = parent_model_options["net"]
+        parent_layers = parent_net["layers"]
+
+        if mutation == "add_dense_layer" and network_type == "dense":
+            # add a dense layer to a dense network
+            new_model_options["net"]["layers"].insert(
+                np.random.randint(0, len(parent_layers)),
+                rand_all(DenseNeuralNetwork.LAYER_CONFIG["dense"])
             )
-            for _ in range(n)
-        ]
+        elif mutation == "add_dense_layer" and network_type in ["SimpleRNN", "LSTM", "GRU"]:
+            # add a dense layer to a RNN, LSTM or GRU network
+            first_dense_layer_idx = -1
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "dense":
+                    first_dense_layer_idx = layer_idx
+                    break
+            new_model_options["net"]["layers"].insert(
+                np.random.randint(first_dense_layer_idx, len(parent_layers)),
+                rand_all(DenseNeuralNetwork.LAYER_CONFIG["dense"])
+            )
+        elif mutation == "add_rnn_layer" and network_type == "SimpleRNN":
+            # add a RNN layer to a RNN network
+            first_dense_layer_idx = -1
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "dense":
+                    first_dense_layer_idx = layer_idx
+                    break
+            new_model_options["net"]["layers"].insert(
+                np.random.randint(0, first_dense_layer_idx),
+                rand_all(DenseNeuralNetwork.LAYER_CONFIG["SimpleRNN"])
+            )
+        elif mutation == "add_lstm_layer" and network_type == "LSTM":
+            # add a LSTM layer to a LSTM network
+            first_dense_layer_idx = -1
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "dense":
+                    first_dense_layer_idx = layer_idx
+                    break
+            new_model_options["net"]["layers"].insert(
+                np.random.randint(0, first_dense_layer_idx),
+                rand_all(DenseNeuralNetwork.LAYER_CONFIG["LSTM"])
+            )
+        elif mutation == "add_gru_layer" and network_type == "GRU":
+            # add a GRU layer to a GRU network
+            first_dense_layer_idx = -1
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "dense":
+                    first_dense_layer_idx = layer_idx
+                    break
+            new_model_options["net"]["layers"].insert(
+                np.random.randint(0, first_dense_layer_idx),
+                rand_all(DenseNeuralNetwork.LAYER_CONFIG["GRU"])
+            )
+        elif mutation == "remove_dense_layer" and network_type == "dense":
+            # remove any dense layer except the output layer
+            if len(parent_layers) > 1:
+                dense_layer_idxs = []
+                for layer_idx, layer in enumerate(parent_layers[:-1]):
+                    if layer["layer_type"] == "dense":
+                        dense_layer_idxs.append(layer_idx)
+                new_model_options["net"]["layers"].pop(np.random.choice(dense_layer_idxs))
+        elif mutation == "remove_dense_layer" and network_type in ["SimpleRNN", "LSTM", "GRU"]:
+            # remove any dense layer from a RNN, LSTM or GRU network
+            dense_layer_idxs = []
+            for layer_idx, layer in enumerate(parent_layers[:-1]):
+                if layer["layer_type"] == "dense":
+                    dense_layer_idxs.append(layer_idx)
+            if len(dense_layer_idxs) > 0:
+                new_model_options["net"]["layers"].pop(np.random.choice(dense_layer_idxs))
+        elif mutation == "remove_rnn_layer" and network_type == "SimpleRNN":
+            # remove any RNN layer from a RNN network
+            layer_idxs = []
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "SimpleRNN":
+                    layer_idxs.append(layer_idx)
+            if len(layer_idxs) > 1:
+                new_model_options["net"]["layers"].pop(np.random.choice(layer_idxs))
+        elif mutation == "remove_lstm_layer" and network_type == "LSTM":
+            # remove any LSTM layer from a LSTM network
+            layer_idxs = []
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "LSTM":
+                    layer_idxs.append(layer_idx)
+            if len(layer_idxs) > 1:
+                new_model_options["net"]["layers"].pop(np.random.choice(layer_idxs))
+        elif mutation == "remove_gru_layer" and network_type == "GRU":
+            # remove any GRU layer from a GRU network
+            layer_idxs = []
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] == "GRU":
+                    layer_idxs.append(layer_idx)
+            if len(layer_idxs) > 1:
+                new_model_options["net"]["layers"].pop(np.random.choice(layer_idxs))
+        elif mutation == "change_units":
+            # change the number of units of a hidden layer
+            if len(parent_layers) > 1:
+                change_layer_idx = np.random.randint(0, len(parent_layers) - 1)
+                change_layer_type = parent_layers[change_layer_idx]["layer_type"]
+                new_model_options["net"]["layers"][change_layer_idx]["units"] = rand(
+                    DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["units"]["type"],
+                    DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["units"]["option_config"]
+                )
+        elif mutation == "change_activation":
+            # change the activation of a hidden layer
+            if len(parent_layers) > 1:
+                change_layer_idx = np.random.randint(0, len(parent_layers) - 1)
+                change_layer_type = parent_layers[change_layer_idx]["layer_type"]
+                new_model_options["net"]["layers"][change_layer_idx]["activation"] = rand(
+                    DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["activation"]["type"],
+                    DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["activation"]["option_config"]
+                )
+        elif mutation == "change_recurrent_activation" and network_type in ["LSTM", "GRU"]:
+            # change the recurrent activation of a layer
+            layer_idxs = []
+            for layer_idx, layer in enumerate(parent_layers):
+                if layer["layer_type"] in ["LSTM", "GRU"]:
+                    layer_idxs.append(layer_idx)
+            change_layer_idx = np.random.choice(layer_idxs)
+            change_layer_type = parent_layers[change_layer_idx]["layer_type"]
+            new_model_options["net"]["layers"][change_layer_idx]["recurrent_activation"] = rand(
+                DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["recurrent_activation"]["type"],
+                DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["recurrent_activation"]["option_config"]
+            )
+        elif mutation in ["loss", "optimizer", "learning_rate", "epochs", "batch_size"]:
+            # change the loss, optimizer, learning rate, number of epochs or batch size
+            new_model_options["net"][mutation] = mutate(
+                DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"][mutation]["type"],
+                parent_net[mutation],
+                DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"][mutation]["option_config"],
+                1.0
+            )
+
+        return new_model_options
 
     @staticmethod
     def evolve(models, n):
@@ -597,63 +886,23 @@ class DenseNeuralNetwork(Model):
 
         best_model_options = [model.model_options for model in models]
 
+        # create n - len(models) models
         while len(new_models) < n:
-            new_model_options = np.random.choice(best_model_options)
+            # choose a parent model
+            parent_model_idx = np.random.randint(len(best_model_options))
+            parent_model = models[parent_model_idx]
 
-            change_option = np.random.choice([
-                "add_layer",
-                "remove_layer",
-                "change_units",
-                "change_activation",
-                "loss",
-                "optimizer",
-                "learning_rate",
-                "epochs",
-                "batch_size"
-            ])
+            # randomly choose a mutation
+            mutation = np.random.choice(DenseNeuralNetwork.MUTATIONS[parent_model.model_options["network_type"]])
 
-            if change_option == "add_layer":
-                new_model_options["net"]["layers"].insert(
-                    np.random.randint(0, len(new_model_options["net"]["layers"])),
-                    rand_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"])
-                )
-            elif change_option == "remove_layer":
-                if len(new_model_options["net"]["layers"]) > 1:
-                    new_model_options["net"]["layers"].pop(np.random.randint(0, len(new_model_options["net"]["layers"]) - 1))
-            elif change_option == "change_units":
-                if len(new_model_options["net"]["layers"]) > 1:
-                    change_layer_idx = np.random.randint(0, len(new_model_options["net"]["layers"]) - 1)
-                    new_model_options["net"]["layers"][change_layer_idx]["units"] = rand(
-                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["units"]["type"],
-                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["units"]["option_config"]
-                    )
-            elif change_option == "change_activation":
-                if len(new_model_options["net"]["layers"]) > 1:
-                    change_layer_idx = np.random.randint(0, len(new_model_options["net"]["layers"]) - 1)
-                    new_model_options["net"]["layers"][change_layer_idx]["activation"] = rand(
-                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["activation"]["type"],
-                        DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"]["layers"]["layer"]["activation"]["option_config"]
-                    )
-            elif change_option in ["loss", "optimizer", "learning_rate", "epochs", "batch_size"]:
-                new_model_options["net"][change_option] = mutate(
-                    DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"][change_option]["type"],
-                    new_model_options["net"][change_option],
-                    DenseNeuralNetwork.MODEL_OPTIONS_CONFIG["net"]["option_config"][change_option]["option_config"],
-                    1.0
-                )
+            # mutate the model
+            new_model_options = DenseNeuralNetwork.evolve_model_options(parent_model.model_options, mutation)
 
+            # create a new model
             new_models.append(DenseNeuralNetwork(
                 new_model_options,
-                {
-                    "config": [
-                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
-                    ],
-                    "stock_codes": ["GOOGL"],
-                    "stock_code": "GOOGL",
-                    "column": "adjusted_close"
-                },
-                "GOOGL"
+                parent_model.input_options,
+                parent_model.stock_code
             ))
 
         return new_models

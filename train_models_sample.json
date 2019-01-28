@@ -90,6 +90,7 @@
             "model": "dnn",
             "stockCode": "GOOGL",
             "modelOptions": {
+                "network_type": "dense",
                 "net": {
                     "layers": [
                         {"units": 10, "activation": "relu", "is_input": true, "inputUnits": 10},
