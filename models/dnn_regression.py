@@ -52,17 +52,19 @@ class DenseNeuralNetwork(Model):
                 "learning_rate": {
                     "type": OPTION_TYPES["discrete"],
                     "option_config": {
-                        "options": [0.1, 0.01, 0.001, 0.0001]
+                        "options": [0.01, 0.001, 0.0001]
                     }
                 },
                 "epochs": {
-                    "type": OPTION_TYPES["static"],
-                    "value": 10
+                    "type": OPTION_TYPES["discrete"],
+                    "option_config": {
+                        "options": [10, 20, 50, 100]
+                    }
                 },
                 "batch_size": {
                     "type": OPTION_TYPES["discrete"],
                     "option_config": {
-                        "options": [8, 16, 32, 64]
+                        "options": [16, 32, 64]
                     }
                 },
                 "metrics": {
@@ -87,7 +89,7 @@ class DenseNeuralNetwork(Model):
             "units": {
                 "type": OPTION_TYPES["discrete"],
                 "option_config": {
-                    "options": [4, 8, 16, 32, 64, 128]
+                    "options": [8, 16, 32, 64, 128]
                 }
             },
             "activation": {
@@ -105,7 +107,7 @@ class DenseNeuralNetwork(Model):
             "units": {
                 "type": OPTION_TYPES["discrete"],
                 "option_config": {
-                    "options": [4, 8, 16, 32, 64, 128]
+                    "options": [8, 16, 32, 64, 128]
                 }
             },
             "activation": {
@@ -131,7 +133,7 @@ class DenseNeuralNetwork(Model):
             "units": {
                 "type": OPTION_TYPES["discrete"],
                 "option_config": {
-                    "options": [4, 8, 16, 32, 64, 128]
+                    "options": [8, 16, 32, 64, 128]
                 }
             },
             "activation": {
@@ -163,7 +165,7 @@ class DenseNeuralNetwork(Model):
             "units": {
                 "type": OPTION_TYPES["discrete"],
                 "option_config": {
-                    "options": [4, 8, 16, 32, 64, 128]
+                    "options": [8, 16, 32, 64, 128]
                 }
             },
             "activation": {
@@ -469,7 +471,7 @@ class DenseNeuralNetwork(Model):
             if model_path is not None:
                 self.load_model(path.join(saved_model_dir, model_path), Model.KERAS_MODEL)
 
-    def train(self, xs, ys):
+    def train(self, xs, ys, **kwargs):
         """Trains the model.
 
         Args:
@@ -477,7 +479,14 @@ class DenseNeuralNetwork(Model):
             ys: A Numpy label array of m data.
         """
 
-        self.model.fit(xs, ys, epochs=self.model_options["net"]["epochs"], batch_size=self.model_options["net"]["batch_size"])
+        self.model.fit(
+            xs,
+            ys,
+            epochs=self.model_options["net"]["epochs"],
+            batch_size=self.model_options["net"]["batch_size"],
+            verbose=kwargs["verbose"] if "verbose" in kwargs else 1,
+            callbacks=kwargs["callbacks"] if "callbacks" in kwargs else None
+        )
 
         # # Initialize the evaluation_metric to its threshold so that the model must be trained
         # # at least once
@@ -712,7 +721,13 @@ class DenseNeuralNetwork(Model):
             if network_type == "dense":
                 input_options = {
                     "config": [
-                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                        {"type": "lookback", "n": 22, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 5, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 30, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 90, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 180, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 365, "stock_code": "GOOGL", "column": "adjusted_close"}
                     ],
                     "stock_codes": ["GOOGL"],
                     "stock_code": "GOOGL",
@@ -883,6 +898,7 @@ class DenseNeuralNetwork(Model):
         """Cross-over and breed new models."""
 
         new_models = models
+        mutations = []
 
         best_model_options = [model.model_options for model in models]
 
@@ -894,6 +910,7 @@ class DenseNeuralNetwork(Model):
 
             # randomly choose a mutation
             mutation = np.random.choice(DenseNeuralNetwork.MUTATIONS[parent_model.model_options["network_type"]])
+            mutations.append(mutation)
 
             # mutate the model
             new_model_options = DenseNeuralNetwork.evolve_model_options(parent_model.model_options, mutation)
@@ -905,4 +922,4 @@ class DenseNeuralNetwork(Model):
                 parent_model.stock_code
             ))
 
-        return new_models
+        return new_models, mutations

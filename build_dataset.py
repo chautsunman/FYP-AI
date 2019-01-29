@@ -18,7 +18,7 @@ def build_moving_avg(data, column_name, lookback):
     moving_avg.iloc[lookback + 1:, 0] = moving_avg.iloc[lookback:-1, 0].values - moving_avg.iloc[:-lookback - 1, 0].values
     moving_avg = moving_avg.iloc[lookback + 1:]
     moving_avg = moving_avg / lookback
-    moving_avg = moving_avg.rename({column_name: "moving_avg"}, axis="columns")
+    moving_avg = moving_avg.rename({column_name: "moving_avg_{}".format(lookback)}, axis="columns")
     return moving_avg
 
 def build_lookback(data, column_name, lookback):
