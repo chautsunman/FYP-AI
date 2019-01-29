@@ -894,32 +894,20 @@ class DenseNeuralNetwork(Model):
         return new_model_options
 
     @staticmethod
-    def evolve(models, n):
+    def evolve(parent_model):
         """Cross-over and breed new models."""
 
-        new_models = models
-        mutations = []
+        # randomly choose a mutation
+        mutation = np.random.choice(DenseNeuralNetwork.MUTATIONS[parent_model.model_options["network_type"]])
 
-        best_model_options = [model.model_options for model in models]
+        # reproduce the child model options
+        child_model_options = DenseNeuralNetwork.evolve_model_options(parent_model.model_options, mutation)
 
-        # create n - len(models) models
-        while len(new_models) < n:
-            # choose a parent model
-            parent_model_idx = np.random.randint(len(best_model_options))
-            parent_model = models[parent_model_idx]
+        # create the child model
+        child_model = DenseNeuralNetwork(
+            child_model_options,
+            parent_model.input_options,
+            parent_model.stock_code
+        )
 
-            # randomly choose a mutation
-            mutation = np.random.choice(DenseNeuralNetwork.MUTATIONS[parent_model.model_options["network_type"]])
-            mutations.append(mutation)
-
-            # mutate the model
-            new_model_options = DenseNeuralNetwork.evolve_model_options(parent_model.model_options, mutation)
-
-            # create a new model
-            new_models.append(DenseNeuralNetwork(
-                new_model_options,
-                parent_model.input_options,
-                parent_model.stock_code
-            ))
-
-        return new_models, mutations
+        return child_model, mutation
