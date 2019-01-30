@@ -709,55 +709,27 @@ class DenseNeuralNetwork(Model):
         return models
 
     @staticmethod
-    def random_models(n, network_type):
-        models = []
+    def random_model_options(n, network_type):
+        """Generate n random model options."""
+
+        all_model_options = []
 
         for _ in range(n):
             model_options = rand_all(DenseNeuralNetwork.MODEL_OPTIONS_CONFIG)
             model_options["network_type"] = network_type
             model_options["net"]["layers"] = DenseNeuralNetwork.INITIAL_LAYERS[network_type]
+            all_model_options.append(model_options)
 
-            input_options = {}
-            if network_type == "dense":
-                input_options = {
-                    "config": [
-                        {"type": "lookback", "n": 22, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 5, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 30, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 90, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 180, "stock_code": "GOOGL", "column": "adjusted_close"},
-                        {"type": "moving_avg", "n": 365, "stock_code": "GOOGL", "column": "adjusted_close"}
-                    ],
-                    "stock_codes": ["GOOGL"],
-                    "stock_code": "GOOGL",
-                    "column": "adjusted_close"
-                }
-            elif network_type in ["SimpleRNN", "LSTM", "GRU"]:
-                input_options = {
-                    "config": [
-                        {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
-                    ],
-                    "stock_codes": ["GOOGL"],
-                    "stock_code": "GOOGL",
-                    "column": "adjusted_close",
-                    "time_window": 10,
-                    "time_window_offset": 1
-                }
-
-            models.append(DenseNeuralNetwork(
-                model_options,
-                input_options,
-                "GOOGL"
-            ))
-
-        return models
+        return all_model_options
 
     @staticmethod
-    def evolve_model_options(parent_model_options, mutation):
+    def evolve_model_options(parent_model_options, mutation=None):
         new_model_options = copy.deepcopy(parent_model_options)
 
         network_type = new_model_options["network_type"]
+
+        if mutation is None:
+            mutation = np.random.choice(DenseNeuralNetwork.MUTATIONS[network_type])
 
         parent_net = parent_model_options["net"]
         parent_layers = parent_net["layers"]
@@ -891,23 +863,4 @@ class DenseNeuralNetwork(Model):
                 1.0
             )
 
-        return new_model_options
-
-    @staticmethod
-    def evolve(parent_model):
-        """Cross-over and breed new models."""
-
-        # randomly choose a mutation
-        mutation = np.random.choice(DenseNeuralNetwork.MUTATIONS[parent_model.model_options["network_type"]])
-
-        # reproduce the child model options
-        child_model_options = DenseNeuralNetwork.evolve_model_options(parent_model.model_options, mutation)
-
-        # create the child model
-        child_model = DenseNeuralNetwork(
-            child_model_options,
-            parent_model.input_options,
-            parent_model.stock_code
-        )
-
-        return child_model, mutation
+        return new_model_options, mutation
