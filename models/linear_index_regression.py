@@ -42,7 +42,7 @@ class LinearIndexRegression(IndexRegressionModel):
             A NumPy array of the prediction.
         """
 
-        return self.model.predict(x).flatten()
+        return self.model.predict(x)
 
     def save(self, saved_model_dir):
         """Saves the model in saved_model_dir.

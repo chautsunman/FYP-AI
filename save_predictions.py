@@ -16,7 +16,8 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset
+#from build_dataset import build_dataset
+from build_dataset_new import build_dataset
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -82,39 +83,52 @@ def get_predictions(stock_code):
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
+        prediction = model.predict(x)
+        predictions.append({"latest_prediction": prediction[-1].tolist(), "snakes": prediction[:-1].tolist()})
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
+        prediction = model.predict(x)
+        predictions.append({"latest_prediction": prediction[-1].tolist(), "snakes": prediction[:-1].tolist()})
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL]) or []
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
+        predict_n = model.model_options["predict_n"]
+        x = build_dataset(model.input_options, predict_n, False)
+        prediction = model.predict(x)
+        predictions.append({"latest_prediction": prediction[-predict_n:].tolist(), 
+                            "snakes": prediction[:-predict_n].tolist()})
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
     predictions = []
     for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
+        predict_n = model.model_options["predict_n"]
+        x = build_dataset(model.input_options, predict_n, False)
+        prediction = model.predict(x)
+        predictions.append({"latest_prediction": prediction[-predict_n:].tolist(), 
+                            "snakes": prediction[:-predict_n].tolist()})
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
     predictions = []
     for model in models:
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
+        prediction = model.predict(x)
+        predictions.append({"latest_prediction": prediction[-1].tolist(), "snakes": prediction[:-1].tolist()})
     predictions_all += predictions
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
 
-    predictions_all = [prediction.tolist() for prediction in predictions_all]
+    #predictions_all = [prediction.tolist() for prediction in predictions_all]
 
     return {"predictions": predictions_all, "models": models_all}
 

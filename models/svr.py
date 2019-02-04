@@ -121,7 +121,7 @@ class SupportVectorRegression(Model):
             A NumPy array of the prediction.
         """
 
-        return np.array([model.predict(x).flatten() for model in self.model]).flatten()
+        return np.array([model.predict(x) for model in self.model])
 
     def save(self, saved_model_dir):
         """Saves the model in saved_model_dir.

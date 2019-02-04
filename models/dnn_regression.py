@@ -282,7 +282,7 @@ class DenseNeuralNetwork(Model):
             A NumPy array of the prediction.
         """
 
-        return self.model.predict(x).flatten()
+        return self.model.predict(x)
 
     # Save the models and update the models_data.json, which stores metadata of all DNN models
     def save(self, saved_model_dir):
