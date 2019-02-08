@@ -116,8 +116,9 @@ def build_dataset(input_config, predict_n, training, snake_size=10):
             y = target[-input_config["config"][0]["n"]:]
             return x, y
         else:
-            return np.arange(
-                input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
+            x = np.arange(1, input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
+            y = target[-input_config["config"][0]["n"]:]
+            return x, y
     
     # Build feature vectors by applying transformations on dataset 
     # specified in input_config
@@ -141,13 +142,21 @@ def build_dataset(input_config, predict_n, training, snake_size=10):
     if "time_window" in input_config:
         time_window = input_config["time_window"]
         x = get_sliding_window(x, time_window)
-    
+
     if training:
         output_shape = (x.shape[0], predict_n)
         y_size = output_shape[0] + predict_n - 1
         y = get_sliding_window(target[-y_size:], predict_n)
 
         return x, y
+    
     else:
+        output_shape = (x.shape[0], predict_n)
+        y_size = output_shape[0] + predict_n - 1
+        y = get_sliding_window(target[-y_size:], predict_n)
+
         # Get non-overlapping windows, aligning to the end
-        return x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
+        x = x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
+        y = y[::-1][:predict_n*(snake_size):predict_n][::-1]
+        print("{}, {}".format(x.shape, y.shape))
+        return x, y
