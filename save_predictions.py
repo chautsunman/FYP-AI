@@ -22,7 +22,7 @@ from train_models import SAVED_MODELS_DIR_MAP
 
 def get_saved_predictions(stock_code, location="local"):
     """Gets saved predictions directly
-    
+
     Args:
         stock_code: Stock code specifying a stock.
         location: local or cloud, for now only local has been implemented
@@ -112,7 +112,15 @@ def get_predictions(stock_code):
         x = build_dataset(model.input_options, model.model_options["predict_n"], False)
         predictions.append(model.predict(x))
     predictions_all += predictions
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [
+        {
+            "modelName": model.get_model_display_name(),
+            "model": "dnn",
+            "modelOptions": model.model_options,
+            "inputOptions": model.input_options
+        }
+        for model in models
+    ]
 
     predictions_all = [prediction.tolist() for prediction in predictions_all]
 

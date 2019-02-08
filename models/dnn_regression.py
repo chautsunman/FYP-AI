@@ -34,13 +34,13 @@ class DenseNeuralNetwork(Model):
                                 "option_config": {
                                     "range": [1, 10],
                                     "step": 1
-                                } 
+                                }
                             },
                             "activation": {
                                 "type": OPTION_TYPES["discrete"],
                                 "option_config": {
                                     "options": [
-                                        "relu", "linear", "exponential", "hard_sigmoid", "sigmoid", 
+                                        "relu", "linear", "exponential", "hard_sigmoid", "sigmoid",
                                         "tanh", "softsign", "softplus", "selu", "elu", "softmax"
                                     ]
                                 }
@@ -62,13 +62,13 @@ class DenseNeuralNetwork(Model):
                             #     "option_config": {
                             #         "options": [True, False]
                             #     }
-                            # }, 
+                            # },
                             # "inputUnits": {
                             #     "type": OPTION_TYPES["step"],
                             #     "option_config": {
                             #         "range": [10, 20],
                             #         "step": 5
-                            #     }                                 
+                            #     }
                             # }
                         }
                     ]
@@ -143,8 +143,8 @@ class DenseNeuralNetwork(Model):
             if "layer_type" in layer and layer["layer_type"] == "LSTM":
                 if "is_input" in layer and layer["is_input"]:
                     self.model.add(LSTM(
-                        units=layer["units"], 
-                        activation=layer["activation"], 
+                        units=layer["units"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=layer["return_sequences"],
                         stateful=layer["stateful"],
@@ -153,16 +153,16 @@ class DenseNeuralNetwork(Model):
                 elif "is_output" in layer and layer["is_output"]:
                     # Output layer should only output the last LSTM output
                     self.model.add(LSTM(
-                        units=layer["predict_n"], 
-                        activation=layer["activation"], 
+                        units=layer["predict_n"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=False,
                         stateful=layer["stateful"]
                     ))
                 else:
                     self.model.add(LSTM(
-                        units=layer["units"], 
-                        activation=layer["activation"], 
+                        units=layer["units"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=layer["return_sequences"],
                         stateful=layer["stateful"]
@@ -170,8 +170,8 @@ class DenseNeuralNetwork(Model):
             elif "layer_type" in layer and layer["layer_type"] == "GRU":
                 if "is_input" in layer and layer["is_input"]:
                     self.model.add(GRU(
-                        units=layer["units"], 
-                        activation=layer["activation"], 
+                        units=layer["units"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=layer["return_sequences"],
                         stateful=layer["stateful"],
@@ -180,16 +180,16 @@ class DenseNeuralNetwork(Model):
                 elif "is_output" in layer and layer["is_output"]:
                     # Output layer should only output the last LSTM output
                     self.model.add(GRU(
-                        units=layer["predict_n"], 
-                        activation=layer["activation"], 
+                        units=layer["predict_n"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=False,
                         stateful=layer["stateful"]
                     ))
                 else:
                     self.model.add(GRU(
-                        units=layer["units"], 
-                        activation=layer["activation"], 
+                        units=layer["units"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=layer["return_sequences"],
                         stateful=layer["stateful"]
@@ -197,8 +197,8 @@ class DenseNeuralNetwork(Model):
             elif "layer_type" in layer and layer["layer_type"] == "SimpleRNN":
                 if "is_input" in layer and layer["is_input"]:
                     self.model.add(SimpleRNN(
-                        units=layer["units"], 
-                        activation=layer["activation"], 
+                        units=layer["units"],
+                        activation=layer["activation"],
                         return_sequences=layer["return_sequences"],
                         stateful=layer["stateful"],
                         input_shape=self.get_input_shape(self.input_options)
@@ -206,16 +206,16 @@ class DenseNeuralNetwork(Model):
                 elif "is_output" in layer and layer["is_output"]:
                     # Output layer should only output the last LSTM output
                     self.model.add(SimpleRNN(
-                        units=layer["predict_n"], 
-                        activation=layer["activation"], 
+                        units=layer["predict_n"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=False,
                         stateful=layer["stateful"]
                     ))
                 else:
                     self.model.add(SimpleRNN(
-                        units=layer["units"], 
-                        activation=layer["activation"], 
+                        units=layer["units"],
+                        activation=layer["activation"],
                         recurrent_activation=layer["recurrent_activation"],
                         return_sequences=layer["return_sequences"],
                         stateful=layer["stateful"]
@@ -433,8 +433,12 @@ class DenseNeuralNetwork(Model):
     def get_model_display_name(self):
         """Returns model display name for the app."""
 
-        if "network_type" in self.model_options:
-            return "Neural Network, " + self.model_options["network_type"]
+        if "network_type" in self.model_options and self.model_options["network_type"] == "SimpleRNN":
+            return "RNN"
+        elif "network_type" in self.model_options and self.model_options["network_type"] == "LSTM":
+            return "LSTM"
+        elif "network_type" in self.model_options and self.model_options["network_type"] == "GRU":
+            return "GRU"
         else:
             return "Dense Neural Network"
 
