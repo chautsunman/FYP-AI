@@ -456,14 +456,14 @@ class DenseNeuralNetwork(Model):
         optimizer = self.OPTIMIZER_MAP[net["optimizer"].lower()](lr=net["learning_rate"])
         self.model.compile(loss=net["loss"], optimizer=optimizer, metrics=net["metrics"])
 
-    def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None):
+    def __init__(self, model_options, input_options, stock_code=None, load=False, saved_model_dir=None, saved_model_path=None, build_model=True):
         """Initializes the model. Creates a new model or loads a saved model."""
 
         Model.__init__(self, model_options, input_options, stock_code=stock_code)
 
         self.input_shape = get_input_shape(input_options)
 
-        if not load or saved_model_dir is None:
+        if not load or saved_model_dir is None and build_model:
             self.build_model()
 
         else:
