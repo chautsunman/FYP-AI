@@ -56,7 +56,8 @@ class DenseNeuralNetwork(Model):
                     }
                 },
                 "epochs": {
-                    "type": OPTION_TYPES["discrete"],
+                    "type": OPTION_TYPES["static"],
+                    "value": 100,
                     "option_config": {
                         "options": [10, 20, 50, 100]
                     }
