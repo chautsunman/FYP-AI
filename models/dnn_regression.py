@@ -864,4 +864,12 @@ class DenseNeuralNetwork(Model):
                 1.0
             )
 
+        # return the output from the last recurrent layer to the first dense layer
+        if network_type in ["SimpleRNN", "LSTM", "GRU"]:
+            for layer_idx, layer in enumerate(new_model_options["net"]["layers"]):
+                if layer["layer_type"] == "dense":
+                    new_model_options["net"]["layers"][layer_idx - 1]["return_sequences"] = True
+                    break
+                new_model_options["net"]["layers"][layer_idx]["return_sequences"] = False
+
         return new_model_options, mutation
