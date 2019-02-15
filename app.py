@@ -37,10 +37,12 @@ def predict(stock_code):
     #predictions = get_predictions(stock_code)
     # Get predictions from local predictions instead
     predictions = get_saved_predictions(stock_code)
+    print(predictions)
 
     return jsonify({
         "success": True,
         "predictions": predictions["predictions"],
+        "snakes": predictions["snakes"],
         "upper": predictions["upper"],
         "lower": predictions["lower"],
         "models": predictions["models"]
