@@ -666,8 +666,12 @@ class DenseNeuralNetwork(Model):
     def get_model_display_name(self):
         """Returns model display name for the app."""
 
-        if "network_type" in self.model_options:
-            return "Neural Network, " + self.model_options["network_type"]
+        if "network_type" in self.model_options and self.model_options["network_type"] == "SimpleRNN":
+            return "RNN"
+        elif "network_type" in self.model_options and self.model_options["network_type"] == "LSTM":
+            return "LSTM"
+        elif "network_type" in self.model_options and self.model_options["network_type"] == "GRU":
+            return "GRU"
         else:
             return "Dense Neural Network"
 

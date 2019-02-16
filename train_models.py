@@ -10,7 +10,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset
+from build_dataset_new import build_dataset
 
 SAVED_MODELS_DIR = path.join(".", "saved_models")
 SAVED_MODELS_DIR_MAP = {
