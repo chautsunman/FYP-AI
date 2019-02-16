@@ -3,6 +3,7 @@ from datetime import date
 import json
 import os
 import glob
+import csv 
 
 import firebase_admin
 from firebase_admin import credentials 
@@ -18,6 +19,7 @@ from models.dnn_regression import DenseNeuralNetwork
 
 #from build_dataset import build_dataset
 from build_dataset_new import build_dataset
+import rating_calculation
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -81,6 +83,21 @@ def get_predictions(stock_code):
     lower_all = []
     models_all = []
 
+    NUM_OF_DAY = 100
+    TIME_INTERVAL = 10
+
+    with open('./data/stock_prices/' + stock_code + '.csv', 'r') as csv_file:
+        reader = csv.reader(csv_file)
+        # remove header and get the latest 101 data
+        stock_data_segment = list(reader)[1:NUM_OF_DAY + 2]
+
+    actual_prices = []
+    for line in stock_data_segment:
+        actual_prices.append(float(line[5]))
+
+    actual_prices = actual_prices[::-1]
+
+
     # get all predictions and models data
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
     predictions, snakes, upper, lower = [], [], [], []
@@ -92,12 +109,15 @@ def get_predictions(stock_code):
         upper.append((prediction[-1] + np.std(prediction[:-1] - y, axis=0)).tolist())
         lower.append((prediction[-1] - np.std(prediction[:-1] - y, axis=0)).tolist())
 
-        
     predictions_all += predictions
     snakes_all += snakes
     upper_all += upper
     lower_all += lower
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+    } for model in models]
     
     
     """
@@ -136,10 +156,14 @@ def get_predictions(stock_code):
     snakes_all += snakes
     upper_all += upper
     lower_all += lower
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+    } for model in models]
     
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
-    predictions, snakes, upper, lower = [], [], [], []
+    predictions, snakes, upper, lower, score, direction = [], [], [], [], [], []
     for model in models:
         predict_n = model.model_options["predict_n"]
         x, y = build_dataset(model.input_options, predict_n, False)
@@ -151,11 +175,17 @@ def get_predictions(stock_code):
         lower.append((prediction[-predict_n] - np.std(prediction[:-predict_n] - y, axis=0)).tolist())
         #predictions.append({"latest_prediction": prediction[-predict_n:].tolist(), 
         #                    "snakes": prediction[:-predict_n].tolist()})
+        
     predictions_all += predictions
     snakes_all += snakes
     upper_all += upper
     lower_all += lower
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+        # pd.read_csv("data/stock_prices/" + stock_code + ".csv", index_col=0).iloc[-100:]["close"].values.tolist
+    } for model in models]
     
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
     predictions, snakes, upper, lower = [], [], [], []
@@ -175,22 +205,24 @@ def get_predictions(stock_code):
             "modelName": model.get_model_display_name(),
             "model": "dnn",
             "modelOptions": model.model_options,
-            "inputOptions": model.input_options
+            "inputOptions": model.input_options,
+            "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+            "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
         }
         for model in models
     ]
     #predictions_all = [prediction.tolist() for prediction in predictions_all]
-    print("====Snakes All====")
-    print(len(snakes_all))
-
-    return {"predictions": predictions_all, "snakes": snakes_all, "upper": upper_all, "lower": lower_all, "models": models_all}
+    # print("====Snakes All====")
+    # print(len(snakes_all))
+    
+    return {"predictions": predictions_all, "snakes": snakes_all, "upper": upper_all, "lower": lower_all, "models": models_all, "grade": rating_calculation.calculate_traffic_light_score(models_all)}
 
 def save_predictions_local(stock_code):
     """Saves predictions in local in saved_predictions/<stock_code>."""
 
     # get the predictions
     predictions = get_predictions(stock_code)
-    print(predictions)
+    # print(predictions)
 
     # create the predictions folder for the stock if it does not exist
     if not os.path.isdir("./saved_predictions/" + stock_code):
