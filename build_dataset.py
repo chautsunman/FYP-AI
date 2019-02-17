@@ -1,45 +1,87 @@
 import numpy as np
 import pandas as pd
 
-def build_moving_avg(data, column_name, lookback):
-    """Builds moving average dataset.
+def get_sliding_window(data, window_size):
+    """Get a sliding window.
+    
+    Args:
+        data: an n-dimensional ndarray of shape (d1, d2, ..., dn)
+        window_size: the window size
+        slide: how many elements to per window
+    
+    Returns:
+        An (n+1) dimensional ndarray of shape (d1, d2, ..., dn, dn+1)
+        where a subarray of shape (d2, ..., dn+1) is a window
+    """
+    strides = (data.strides[0],) + data.strides
+    dataset_size = data.shape[0] - window_size + 1
+
+    
+    if len(data.shape) > 1:
+        shape = (dataset_size, window_size) + data.shape[1:]
+    else:
+        shape = (dataset_size, window_size)
+
+    print("Shape: {}, Stride: {}".format(shape, strides))
+
+    #data_start = data.shape[0]
+    #return np.lib.stride_tricks.as_strided(data[data_start:], shape, strides)
+    return np.lib.stride_tricks.as_strided(data[:], shape, strides)
+
+def get_moving_avg(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
+    """Get moving avg
+    Args:
+        stock_data: pandas dataframe containing all the stock data, from oldest to newest
+        stock_code: stock code of the required moving average
+        column: column of the required moving average
+        n: moving average of <n> elements
+        skip_last: ignore the last <skip_last> records when computing moving average
+    Returns
+        An N-by-1 array of moving average
+    
+    """
+    if skip_last != -1:
+        target = stock_data[stock_code][column].values
+    else:
+        target = stock_data[stock_code][column].values[:-skip_last]
+        
+    return get_sliding_window(target, n).mean(axis=1).reshape(-1,1)
+    
+def get_lookback(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
+    """Get a lookback array
+    Args:
+        stock_data: pandas dataframe containing all the stock data, from oldest to newest
+        stock_code: stock code of the required moving average
+        column: column of the required moving average
+        n: window size
+        skip_last: ignore the last <skip_last> records when computing moving average
+    Returns
+        An N-by-window_size array of moving average
+    
+    """
+    if skip_last != -1:
+        target = stock_data[stock_code][column].values
+    else:
+        target = stock_data[stock_code][column].values[:-skip_last]
+    return get_sliding_window(target, n)
+
+def get_stock_data(stock_codes):
+    """Retrieves data from a list of stock codes
 
     Args:
-        data: A Pandas DataFrame (1 column (<column_name>), sorted from oldest to latest).
-        column_name: Name of the data column used to calculate the moving average.
-        lookback: The number of data used to calculate the moving average.
+        stock_codes: <array_of_stock_codes_needed>
 
     Returns:
-        A Pandas DataFrame with moving_avg column.
+        a dict with stock codes as the keys and corresponding stock data as values
+
     """
+    stock_data = {}
+    for code in stock_codes:
+        stock_data[code] = pd.read_csv("data/stock_prices/" + code + ".csv", index_col=0).iloc[::-1]
 
-    moving_avg = data.cumsum()
-    moving_avg = pd.concat([pd.DataFrame([0.0], index=["0"], columns=[column_name]), moving_avg])
-    moving_avg.iloc[lookback + 1:, 0] = moving_avg.iloc[lookback:-1, 0].values - moving_avg.iloc[:-lookback - 1, 0].values
-    moving_avg = moving_avg.iloc[lookback + 1:]
-    moving_avg = moving_avg / lookback
-    moving_avg = moving_avg.rename({column_name: "moving_avg"}, axis="columns")
-    return moving_avg
+    return stock_data
 
-def build_lookback(data, column_name, lookback):
-    """Builds lookback dataset.
-
-    Args:
-        data: A Pandas DataFrame (sorted from oldest to latest).
-        column_name: Name of the data column used to build the lookback.
-        lookback: The number of lookback data.
-
-    Returns:
-        A Pandas DataFrame with <lookback> columns.
-    """
-
-    return pd.DataFrame(
-        np.stack(data.loc[:, column_name][i:i+lookback] for i in range(0, data.loc[:, column_name].shape[0]-lookback)),
-        index=data.index[lookback:],
-        columns=["lookback_" + str(i) for i in range(lookback, 0, -1)]
-    )
-
-def build_dataset(input_config, predict_n, training):
+def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, previous=None):
     """Build dataset.
 
     Args:
@@ -62,86 +104,68 @@ def build_dataset(input_config, predict_n, training):
 
     Returns:
         A tuple of m-data-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training,
-        or a tuple of m-data-by-t-timesteps-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training (if RNN/LSTM)
+        or a tuple of m-data-by-t-timesteps-by-n-features NumPy array and m-data-by-predict-n-labels NumPy 
+        array for training (if RNN/LSTM)
         or a 1-by-number-of-features NumPy array for prediction
     """
+    
+    # Get all the stock data
+    #stock_data = get_stock_data(input_config["stock_codes"])
+    if previous is not None:
+        new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_config["column"]])
+        stock_data[input_config["stock_code"]] = stock_data[input_config["stock_code"]].append(new_values, ignore_index=True)
 
-    stock_data = {}
+    print(stock_data[input_config["stock_code"]])
 
-    X = []
+    target = stock_data[input_config["stock_code"]][input_config["column"]].values
 
-    for stock_code in input_config["stock_codes"]:
-        stock_data[stock_code] = pd.read_csv("data/stock_prices/" + stock_code + ".csv", index_col=0).iloc[::-1]
+    # Special case: index price
+    if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
+        if training:
+            x = np.arange(1, input_config["config"][0]["n"] + 1).reshape(-1, 1)
+            y = target[-input_config["config"][0]["n"]:]
+            return x, y
+        else:
+            x = np.arange(1, input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
+            y = target[-input_config["config"][0]["n"]:]
+            return x
+    
+    # Build feature vectors by applying transformations on dataset 
+    # specified in input_config
+    transform = {
+        "moving_avg": get_moving_avg,
+        "lookback": get_lookback
+    }
+    
+    if training:
+        config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
+    else:
+        config_mapper = lambda config: transform[config["type"]](stock_data, **config)
+    
+    transformed_data = list(map(config_mapper, input_config["config"]))
+    dataset_size = min(map(lambda arr: arr.shape[0], transformed_data))
+    
+    features = [ feature[-dataset_size:] for feature in transformed_data ]
+    x = np.concatenate(features, axis=1)
 
-    predict_data = stock_data[input_config["stock_code"]]
-    predict_column = input_config["column"]
-    predict_data_shape = predict_data.shape
-    predict_data_len = predict_data_shape[0]
-    y = pd.DataFrame(
-        np.stack(predict_data[predict_column][i:i+predict_n] for i in range(predict_data_len - predict_n + 1)),
-        index=predict_data.index[:predict_data_len - predict_n + 1],
-        columns=["y_t+" + str(i) for i in range(predict_n)]
-    )
+    # Get a rolling time window if specified in config
+    if "time_window" in input_config:
+        time_window = input_config["time_window"]
+        x = get_sliding_window(x, time_window)
 
     if training:
-        # Training
-        if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
-            x = np.arange(1, input_config["config"][0]["n"] + 1).reshape(-1, 1)
-            y = y.iloc[-input_config["config"][0]["n"]:, 0].values
-            return x, y
+        output_shape = (x.shape[0], predict_n)
+        y_size = output_shape[0] + predict_n - 1
+        y = get_sliding_window(target[-y_size:], predict_n)
 
-        for config in input_config["config"]:
-            if config["type"] == "lookback":
-                X.append(build_lookback(stock_data[config["stock_code"]][[config["column"]]], config["column"], config["n"]))
-
-            elif config["type"] == "moving_avg":
-                X.append(build_moving_avg(stock_data[config["stock_code"]][[config["column"]]], config["column"], config["n"]))
-
-        data = y.join(X, how="inner")
-
-        if "time_window" not in input_config:
-            return data.iloc[:, predict_n:].values, data.iloc[:, :predict_n].values
-        else:
-            time_window = input_config["time_window"]
-            x = data.iloc[:, predict_n:].values
-            sample_size = x.shape[0]
-            x = np.stack( [ x[i:i+time_window] for i in range(sample_size - time_window) ] )
-
-            y = data.iloc[:, :predict_n].values[time_window:]
-
-            return x, y
-
+        return x, y
+    
     else:
-        # Prediction
-        if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
-            return np.arange(
-                input_config["config"][0]["n"] + 1,
-                input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
+        output_shape = (x.shape[0], predict_n)
+        y_size = output_shape[0] + predict_n - 1
+        y = get_sliding_window(target[-y_size:], predict_n)
 
-        if "time_window" not in input_config:
-            for config in input_config["config"]:
-                if config["type"] == "lookback":
-                    X.append(stock_data[config["stock_code"]][config["column"]][-config["n"]:].values.reshape(1, -1))
-
-                elif config["type"] == "moving_avg":
-                    X.append(np.array([[stock_data[config["stock_code"]][config["column"]][-config["n"]:].sum() / config["n"]]]))
-
-            return np.concatenate(X, axis=1)
-
-        else:
-            time_window = input_config["time_window"] 
-            sample_size = stock_data[input_config["stock_code"]].shape[0]
-            for config in input_config["config"]:
-                if config["type"] == "lookback":
-                    features = []
-                    for i in range(sample_size - config["n"] - time_window + 1, sample_size - config["n"] + 1):
-                        features.append(stock_data[config["stock_code"]][config["column"]][i:i+config["n"]].values.reshape(1, 1, -1))
-                    X.append(np.concatenate(features, axis=1))
-
-                elif config["type"] == "moving_avg":
-                    features = []
-                    for i in range(sample_size - config["n"] - time_window + 1, sample_size - config["n"] + 1):
-                        features.append(np.array([[[stock_data[config["stock_code"]][config["column"]][i:i+config["n"]].sum() / config["n"]]]]))
-                    X.append(np.concatenate(features, axis=1))
-
-            return np.concatenate(X, axis=2)
+        # Get non-overlapping windows, aligning to the end
+        x = x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
+        y = y[::-1][:predict_n*(snake_size):predict_n][::-1]
+        return x
