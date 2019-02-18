@@ -3,12 +3,12 @@ import pandas as pd
 
 def get_sliding_window(data, window_size):
     """Get a sliding window.
-    
+
     Args:
         data: an n-dimensional ndarray of shape (d1, d2, ..., dn)
         window_size: the window size
         slide: how many elements to per window
-    
+
     Returns:
         An (n+1) dimensional ndarray of shape (d1, d2, ..., dn, dn+1)
         where a subarray of shape (d2, ..., dn+1) is a window
@@ -16,7 +16,7 @@ def get_sliding_window(data, window_size):
     strides = (data.strides[0],) + data.strides
     dataset_size = data.shape[0] - window_size + 1
 
-    
+
     if len(data.shape) > 1:
         shape = (dataset_size, window_size) + data.shape[1:]
     else:
@@ -38,15 +38,15 @@ def get_moving_avg(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
         skip_last: ignore the last <skip_last> records when computing moving average
     Returns
         An N-by-1 array of moving average
-    
+
     """
     if skip_last != -1:
         target = stock_data[stock_code][column].values
     else:
         target = stock_data[stock_code][column].values[:-skip_last]
-        
+
     return get_sliding_window(target, n).mean(axis=1).reshape(-1,1)
-    
+
 def get_lookback(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
     """Get a lookback array
     Args:
@@ -57,7 +57,7 @@ def get_lookback(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
         skip_last: ignore the last <skip_last> records when computing moving average
     Returns
         An N-by-window_size array of moving average
-    
+
     """
     if skip_last != -1:
         target = stock_data[stock_code][column].values
@@ -81,7 +81,7 @@ def get_stock_data(stock_codes):
 
     return stock_data
 
-def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, previous=None):
+def build_dataset(input_config, predict_n, training, stock_data=None, snake_size=10, previous=None):
     """Build dataset.
 
     Args:
@@ -104,13 +104,15 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
 
     Returns:
         A tuple of m-data-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training,
-        or a tuple of m-data-by-t-timesteps-by-n-features NumPy array and m-data-by-predict-n-labels NumPy 
+        or a tuple of m-data-by-t-timesteps-by-n-features NumPy array and m-data-by-predict-n-labels NumPy
         array for training (if RNN/LSTM)
         or a 1-by-number-of-features NumPy array for prediction
     """
-    
-    # Get all the stock data
-    #stock_data = get_stock_data(input_config["stock_codes"])
+
+    if stock_data is None:
+        # Get all the stock data
+        stock_data = get_stock_data(input_config["stock_codes"])
+
     if previous is not None:
         new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_config["column"]])
         stock_data[input_config["stock_code"]] = stock_data[input_config["stock_code"]].append(new_values, ignore_index=True)
@@ -129,22 +131,22 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
             x = np.arange(1, input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
             y = target[-input_config["config"][0]["n"]:]
             return x
-    
-    # Build feature vectors by applying transformations on dataset 
+
+    # Build feature vectors by applying transformations on dataset
     # specified in input_config
     transform = {
         "moving_avg": get_moving_avg,
         "lookback": get_lookback
     }
-    
+
     if training:
         config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
     else:
         config_mapper = lambda config: transform[config["type"]](stock_data, **config)
-    
+
     transformed_data = list(map(config_mapper, input_config["config"]))
     dataset_size = min(map(lambda arr: arr.shape[0], transformed_data))
-    
+
     features = [ feature[-dataset_size:] for feature in transformed_data ]
     x = np.concatenate(features, axis=1)
 
@@ -159,7 +161,7 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
         y = get_sliding_window(target[-y_size:], predict_n)
 
         return x, y
-    
+
     else:
         output_shape = (x.shape[0], predict_n)
         y_size = output_shape[0] + predict_n - 1

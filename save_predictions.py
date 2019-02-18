@@ -5,7 +5,7 @@ import os
 import glob
 
 import firebase_admin
-from firebase_admin import credentials 
+from firebase_admin import credentials
 from firebase_admin import storage
 import numpy as np
 import pandas as pd
@@ -16,7 +16,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset
+from build_dataset import build_dataset, get_stock_data
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -91,14 +91,14 @@ def get_predictions(stock_code):
         upper.append((prediction[-1] + np.std(prediction[:-1] - y, axis=0)).tolist())
         lower.append((prediction[-1] - np.std(prediction[:-1] - y, axis=0)).tolist())
 
-        
+
     predictions_all += predictions
     snakes_all += snakes
     upper_all += upper
     lower_all += lower
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    
-    
+
+
     """
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
     predictions, snakes, upper, lower = [], [], [], []
@@ -119,7 +119,7 @@ def get_predictions(stock_code):
     lower_all += lower
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
     """
-    
+
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL]) or []
     predictions, snakes, upper, lower = [], [], [], []
     for model in models:
@@ -136,7 +136,7 @@ def get_predictions(stock_code):
     upper_all += upper
     lower_all += lower
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    
+
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
     predictions, snakes, upper, lower = [], [], [], []
     for model in models:
@@ -148,23 +148,48 @@ def get_predictions(stock_code):
         #snakes.append(prediction[:-predict_n].tolist())
         upper.append((prediction[-predict_n] + np.std(prediction[:-predict_n] + y, axis=0)).tolist())
         lower.append((prediction[-predict_n] - np.std(prediction[:-predict_n] - y, axis=0)).tolist())
-        #predictions.append({"latest_prediction": prediction[-predict_n:].tolist(), 
+        #predictions.append({"latest_prediction": prediction[-predict_n:].tolist(),
         #                    "snakes": prediction[:-predict_n].tolist()})
     predictions_all += predictions
     snakes_all += snakes
     upper_all += upper
     lower_all += lower
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
-    
+
+    # get all neural networks
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
     predictions, snakes, upper, lower = [], [], [], []
     for model in models:
-        x, y = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        prediction = model.predict(x)
-        predictions.append(prediction[-1].tolist())
-        snakes.append(prediction[:-1].tolist())
-        upper.append((prediction[-1] + np.std(prediction[:-1] - y, axis=0)).tolist())
-        lower.append((prediction[-1] - np.std(prediction[:-1] - y, axis=0)).tolist())
+        # get stock prices
+        stock_prices = get_stock_data(model.input_options["stock_codes"])
+        if model.model_options["predict_n"] == 1:
+            prev_predictions = []
+            for _ in range(10):
+                # get input
+                x = build_dataset(
+                    model.input_options,
+                    model.model_options["predict_n"],
+                    False,
+                    stock_prices,
+                    previous=np.array(prev_predictions)
+                )
+                # predict next day stock price
+                prediction = model.predict(x)
+                prev_predictions.append(prediction[-1].tolist()[0])
+            predictions.append(prev_predictions)
+        else:
+            # get input
+            x = build_dataset(
+                model.input_options,
+                model.model_options["predict_n"],
+                False
+            )
+            # predict stock prices
+            prediction = model.predict(x)
+            predictions.append(prediction[-1].tolist())
+            snakes.append(prediction[:-1].tolist())
+            upper.append((prediction[-1] + np.std(prediction[:-1] - y, axis=0)).tolist())
+            lower.append((prediction[-1] - np.std(prediction[:-1] - y, axis=0)).tolist())
     predictions_all += predictions
     snakes_all += snakes
     upper_all += upper
