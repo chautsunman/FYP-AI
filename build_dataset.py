@@ -22,8 +22,6 @@ def get_sliding_window(data, window_size):
     else:
         shape = (dataset_size, window_size)
 
-    print("Shape: {}, Stride: {}".format(shape, strides))
-
     #data_start = data.shape[0]
     #return np.lib.stride_tricks.as_strided(data[data_start:], shape, strides)
     return np.lib.stride_tricks.as_strided(data[:], shape, strides)
@@ -115,8 +113,6 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
         new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_config["column"]])
         stock_data[input_config["stock_code"]] = stock_data[input_config["stock_code"]].append(new_values, ignore_index=True)
 
-    print(stock_data[input_config["stock_code"]])
-
     target = stock_data[input_config["stock_code"]][input_config["column"]].values
 
     # Special case: index price
@@ -158,14 +154,18 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
         y_size = output_shape[0] + predict_n - 1
         y = get_sliding_window(target[-y_size:], predict_n)
 
-        return x, y
+        # Skip last 100 samples generated for testing
+        return x[:-100], y[:-100]
     
     else:
         output_shape = (x.shape[0], predict_n)
         y_size = output_shape[0] + predict_n - 1
         y = get_sliding_window(target[-y_size:], predict_n)
 
+        # Grab last 101 to last 2 samples for testing (last sample has no testing y)
+        x_test = x[-101:-1]
+
         # Get non-overlapping windows, aligning to the end
-        x = x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
-        y = y[::-1][:predict_n*(snake_size):predict_n][::-1]
-        return x
+        x_predict = x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
+        y_predict = y[::-1][:predict_n*(snake_size):predict_n][::-1]
+        return x_predict, y_predict, x_test
