@@ -26,7 +26,7 @@ def get_sliding_window(data, window_size):
     #return np.lib.stride_tricks.as_strided(data[data_start:], shape, strides)
     return np.lib.stride_tricks.as_strided(data[:], shape, strides)
 
-def get_moving_avg(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
+def get_moving_avg(stock_data, stock_code, column, n, skip_last = -1, **kwargs):
     """Get moving avg
     Args:
         stock_data: pandas dataframe containing all the stock data, from oldest to newest
@@ -38,14 +38,14 @@ def get_moving_avg(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
         An N-by-1 array of moving average
     
     """
-    if skip_last != -1:
+    if skip_last == -1:
         target = stock_data[stock_code][column].values
     else:
         target = stock_data[stock_code][column].values[:-skip_last]
         
     return get_sliding_window(target, n).mean(axis=1).reshape(-1,1)
     
-def get_lookback(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
+def get_lookback(stock_data, stock_code, column, n, skip_last = -1, **kwargs):
     """Get a lookback array
     Args:
         stock_data: pandas dataframe containing all the stock data, from oldest to newest
@@ -57,7 +57,7 @@ def get_lookback(stock_data, stock_code, column, n, skip_last = 0, **kwargs):
         An N-by-window_size array of moving average
     
     """
-    if skip_last != -1:
+    if skip_last == -1:
         target = stock_data[stock_code][column].values
     else:
         target = stock_data[stock_code][column].values[:-skip_last]
@@ -162,8 +162,10 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
         y_size = output_shape[0] + predict_n - 1
         y = get_sliding_window(target[-y_size:], predict_n)
 
+        previous_len = previous.shape[0] if previous is not None else 0
+        
         # Grab last 101 to last 2 samples for testing (last sample has no testing y)
-        x_test = x[-101:-1]
+        x_test = x[-101-previous_len:-1-previous_len]
 
         # Get non-overlapping windows, aligning to the end
         x_predict = x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
