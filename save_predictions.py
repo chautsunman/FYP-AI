@@ -115,9 +115,9 @@ def get_predictions(stock_code):
     lower_all += lower
     models_all += [{
         "modelName": model.get_model_display_name(),
-        "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
-        "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
-    } for model in models]
+        "score": rating_calculation.model_rating(actual_prices, snakes[i], TIME_INTERVAL),
+        "direction": rating_calculation.direction(actual_prices[-1], predictions[i][-1])
+    } for i, model in enumerate(models)]
     
     
     """

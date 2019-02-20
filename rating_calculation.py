@@ -79,17 +79,14 @@ def model_rating(actual_prices, snakes, time_interval):
     return rating/ (len(predicted_prices) / time_interval)
 
 def direction(today_price, predicted_price):
-    return 1 if predicted_price >= today_price else 0 
+    return 1 if predicted_price >= today_price else -1 
 
 def calculate_traffic_light_score(models):
     traffic_light_score = 0
-    sum_of_score = 0
     for i in models:
-        print (i)
         traffic_light_score += i["score"] * i["direction"]
-        sum_of_score += i["score"]
     
-    return (traffic_light_score/sum_of_score)
+    return (traffic_light_score/len(models))
 
     
 
