@@ -3,12 +3,12 @@ import pandas as pd
 
 def get_sliding_window(data, window_size):
     """Get a sliding window.
-    
+
     Args:
         data: an n-dimensional ndarray of shape (d1, d2, ..., dn)
         window_size: the window size
         slide: how many elements to per window
-    
+
     Returns:
         An (n+1) dimensional ndarray of shape (d1, d2, ..., dn, dn+1)
         where a subarray of shape (d2, ..., dn+1) is a window
@@ -16,7 +16,7 @@ def get_sliding_window(data, window_size):
     strides = (data.strides[0],) + data.strides
     dataset_size = data.shape[0] - window_size + 1
 
-    
+
     if len(data.shape) > 1:
         shape = (dataset_size, window_size) + data.shape[1:]
     else:
@@ -26,7 +26,7 @@ def get_sliding_window(data, window_size):
     #return np.lib.stride_tricks.as_strided(data[data_start:], shape, strides)
     return np.lib.stride_tricks.as_strided(data[:], shape, strides)
 
-def get_moving_avg(stock_data, stock_code, column, n, skip_last = -1, **kwargs):
+def get_moving_avg(stock_data, stock_code, column, n, skip_last = None, **kwargs):
     """Get moving avg
     Args:
         stock_data: pandas dataframe containing all the stock data, from oldest to newest
@@ -36,31 +36,34 @@ def get_moving_avg(stock_data, stock_code, column, n, skip_last = -1, **kwargs):
         skip_last: ignore the last <skip_last> records when computing moving average
     Returns
         An N-by-1 array of moving average
-    
+
     """
-    if skip_last == -1:
-        target = stock_data[stock_code][column].values
-    else:
-        target = stock_data[stock_code][column].values[:-skip_last]
-        
+
+    target = stock_data[stock_code][column].values
+
+    if skip_last is not None:
+        target = target[:-skip_last]
+
     return get_sliding_window(target, n).mean(axis=1).reshape(-1,1)
-    
-def get_lookback(stock_data, stock_code, column, n, skip_last = -1, **kwargs):
+
+def get_lookback(stock_data, stock_code, column, n, skip_last = None, **kwargs):
     """Get a lookback array
     Args:
         stock_data: pandas dataframe containing all the stock data, from oldest to newest
-        stock_code: stock code of the required moving average
-        column: column of the required moving average
+        stock_code: stock code of the required lookback array
+        column: column of the required lookback array
         n: window size
-        skip_last: ignore the last <skip_last> records when computing moving average
+        skip_last: ignore the last <skip_last> records when computing lookback array
     Returns
-        An N-by-window_size array of moving average
-    
+        An N-by-window_size array of lookback array
+
     """
-    if skip_last == -1:
-        target = stock_data[stock_code][column].values
-    else:
-        target = stock_data[stock_code][column].values[:-skip_last]
+
+    target = stock_data[stock_code][column].values
+
+    if skip_last is not None:
+        target = target[:-skip_last]
+
     return get_sliding_window(target, n)
 
 def get_stock_data(stock_codes):
@@ -79,11 +82,16 @@ def get_stock_data(stock_codes):
 
     return stock_data
 
-def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, previous=None):
-    """Build dataset.
+transform = {
+    "moving_avg": get_moving_avg,
+    "lookback": get_lookback
+}
+
+def build_training_dataset(input_options, predict_n, stock_data=None):
+    """Build training dataset.
 
     Args:
-        input_config: A input config dict.
+        input_options: A input config dict.
             Format:
             {
                 "stock_codes": <array_of_stock_codes_needed_to_build_the_dataset>,
@@ -96,78 +104,114 @@ def build_dataset(input_config, predict_n, training, stock_data, snake_size=10, 
                 ]
             }
             Refer to train_models_sample.json.
-
         predict_n: Number of days of stock prices to predict
-        training: True to get the training dataset, False to get the features for prediction.
+        stock_data: Stock prices dictionary, same as output of get_stock_data.
 
-    Returns:
-        A tuple of m-data-by-n-features NumPy array and m-data-by-predict-n-labels NumPy array for training,
-        or a tuple of m-data-by-t-timesteps-by-n-features NumPy array and m-data-by-predict-n-labels NumPy 
-        array for training (if RNN/LSTM)
-        or a 1-by-number-of-features NumPy array for prediction
     """
-    
-    # Get all the stock data
-    #stock_data = get_stock_data(input_config["stock_codes"])
-    if previous is not None:
-        new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_config["column"]])
-        stock_data[input_config["stock_code"]] = stock_data[input_config["stock_code"]].append(new_values, ignore_index=True)
 
-    target = stock_data[input_config["stock_code"]][input_config["column"]].values
+    if stock_data is None:
+        # Get all the stock data
+        stock_data = get_stock_data(input_options["stock_codes"])
+
+    target = stock_data[input_options["stock_code"]][input_options["column"]].values
 
     # Special case: index price
-    if len(input_config["config"]) == 1 and input_config["config"][0]["type"] == "index_price":
-        if training:
-            x = np.arange(1, input_config["config"][0]["n"] + 1).reshape(-1, 1)
-            y = target[-input_config["config"][0]["n"]:]
-            return x, y
-        else:
-            x = np.arange(1, input_config["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
-            y = target[-input_config["config"][0]["n"]:]
-            return x
-    
-    # Build feature vectors by applying transformations on dataset 
-    # specified in input_config
-    transform = {
-        "moving_avg": get_moving_avg,
-        "lookback": get_lookback
-    }
-    
-    if training:
-        config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
-    else:
-        config_mapper = lambda config: transform[config["type"]](stock_data, **config)
-    
-    transformed_data = list(map(config_mapper, input_config["config"]))
+    if len(input_options["config"]) == 1 and input_options["config"][0]["type"] == "index_price":
+        x = np.arange(1, input_options["config"][0]["n"] + 1).reshape(-1, 1)
+        y = target[-input_options["config"][0]["n"]:]
+        return x, y
+
+    # transform the data to features
+    config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
+    transformed_data = list(map(config_mapper, input_options["config"]))
+
+    # set the dataset size as the minimum size of each feature
     dataset_size = min(map(lambda arr: arr.shape[0], transformed_data))
-    
+
+    # concatenate the features as the training set by aligning to the latest date
     features = [ feature[-dataset_size:] for feature in transformed_data ]
     x = np.concatenate(features, axis=1)
 
     # Get a rolling time window if specified in config
-    if "time_window" in input_config:
-        time_window = input_config["time_window"]
+    if "time_window" in input_options:
+        time_window = input_options["time_window"]
         x = get_sliding_window(x, time_window)
 
-    if training:
-        output_shape = (x.shape[0], predict_n)
-        y_size = output_shape[0] + predict_n - 1
-        y = get_sliding_window(target[-y_size:], predict_n)
+    # get the labels
+    y = get_sliding_window(target, predict_n)[-x.shape[0]:]
 
-        # Skip last 100 samples generated for testing
-        return x[:-100], y[:-100]
-    
+    return x, y
+
+def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, snake_size=None, previous=None):
+    """Build prediction input.
+
+    Args:
+        input_options: A input config dict.
+            Format:
+            {
+                "stock_codes": <array_of_stock_codes_needed_to_build_the_dataset>,
+                "stock_code": "predicting stock code",
+                "column": "predicting value column name",
+                "config": [
+                    {"type": "feature type", <other_feature_configs},
+                    {"type": "feature type", <other_feature_configs},
+                    ...
+                ]
+            }
+            Refer to train_models_sample.json.
+        predict_n: Number of days of stock prices to predict
+        stock_data: Stock prices dictionary, same as output of get_stock_data.
+        predict: Whether to build the predict feature vector or the test set.
+        snake_size: The number of test snakes.
+        previous: 1D NumPy array of previous predictions.
+
+    """
+
+    if stock_data is None:
+        # Get all the stock data
+        stock_data = get_stock_data(input_options["stock_codes"])
+
+    if previous is not None:
+        # append the previous stock prices for using as if they are past data
+        new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_options["column"]])
+        stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].append(new_values, ignore_index=True)
+
+    target = stock_data[input_options["stock_code"]][input_options["column"]].values
+
+    # Special case: index price
+    if len(input_options["config"]) == 1 and input_options["config"][0]["type"] == "index_price":
+        x = np.arange(input_options["config"][0]["n"] + 1, input_options["config"][0]["n"] + 1 + predict_n).reshape(-1, 1)
+        return x
+
+    # transform the data to features
+    if predict:
+        config_mapper = lambda config: transform[config["type"]](stock_data, **config)
     else:
-        output_shape = (x.shape[0], predict_n)
-        y_size = output_shape[0] + predict_n - 1
-        y = get_sliding_window(target[-y_size:], predict_n)
+        config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
+    transformed_data = list(map(config_mapper, input_options["config"]))
 
-        previous_len = previous.shape[0] if previous is not None else 0
-        
-        # Grab last 101 to last 2 samples for testing (last sample has no testing y)
-        x_test = x[-101-previous_len:-1-previous_len]
+    # set the dataset size as the minimum size of each feature
+    dataset_size = min(map(lambda arr: arr.shape[0], transformed_data))
 
-        # Get non-overlapping windows, aligning to the end
-        x_predict = x[::-1][:predict_n*(snake_size+1):predict_n][::-1]
-        y_predict = y[::-1][:predict_n*(snake_size):predict_n][::-1]
-        return x_predict, y_predict, x_test
+    # concatenate the features as the training set by aligning to the latest date
+    features = [ feature[-dataset_size:] for feature in transformed_data ]
+    x = np.concatenate(features, axis=1)
+
+    # Get a rolling time window if specified in config
+    if "time_window" in input_options:
+        time_window = input_options["time_window"]
+        x = get_sliding_window(x, time_window)
+
+    if predict:
+        return np.expand_dims(x[-1], axis=0)
+    else:
+        # get the labels
+        y = get_sliding_window(target, predict_n)[-x.shape[0]:]
+
+        if predict_n == 1:
+            return x[-100:], y[-100:]
+        else:
+            # Get non-overlapping windows, aligning to the end
+            x_test = x[::-1][:predict_n*(snake_size):predict_n][::-1]
+            y_test = y[::-1][:predict_n*(snake_size):predict_n][::-1]
+            return x_test, y_test
