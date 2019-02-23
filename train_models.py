@@ -10,7 +10,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset_new import build_dataset
+from build_dataset import build_training_dataset
 
 SAVED_MODELS_DIR = path.join(".", "saved_models")
 SAVED_MODELS_DIR_MAP = {
@@ -58,7 +58,7 @@ def train_models(train_models_data):
             model = DenseNeuralNetwork(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
 
         # prepare the data and train the model
-        x, y = build_dataset(train_model_data["inputOptions"], model.model_options["predict_n"], True)
+        x, y = build_training_dataset(train_model_data["inputOptions"], model.model_options["predict_n"])
         model.train(x, y)
 
         # save the model
