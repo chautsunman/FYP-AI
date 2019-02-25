@@ -83,10 +83,11 @@ def get_predictions(stock_code):
 
     # linear model predictions
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
-    for model in models:
+    for model_idx, model in enumerate(models):
+        print("Linear Regression Model {}".format(model_idx + 1))
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
-        predictions_all.append(prediction[0].tolist())
+        predictions_all.append(prediction.tolist())
         snakes_all.append(None)
         upper_all.append(None)
         lower_all.append(None)
@@ -95,10 +96,11 @@ def get_predictions(stock_code):
 
     # svr model predictions
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
-    for model in models:
+    for model_idx, model in enumerate(models):
+        print("Support Vector Regression Model {}".format(model_idx + 1))
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
-        predictions_all.append(prediction.flatten().tolist())
+        predictions_all.append(prediction.tolist())
         snakes_all.append(None)
         upper_all.append(None)
         lower_all.append(None)
@@ -107,7 +109,8 @@ def get_predictions(stock_code):
 
     # linear index model predictions
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL]) or []
-    for model in models:
+    for model_idx, model in enumerate(models):
+        print("Linear Index Regression Model {}".format(model_idx + 1))
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
@@ -119,7 +122,8 @@ def get_predictions(stock_code):
 
     # svr index model predictions
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
-    for model in models:
+    for model_idx, model in enumerate(models):
+        print("Support Vector Index Regression Model {}".format(model_idx + 1))
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
@@ -132,7 +136,9 @@ def get_predictions(stock_code):
     # neural network predictions
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
 
-    for model in models:
+    for model_idx, model in enumerate(models):
+        print("Neural Network Model {}".format(model_idx + 1))
+
         predict_n = model.model_options["predict_n"]
 
         if predict_n == 1:
@@ -143,7 +149,7 @@ def get_predictions(stock_code):
                 x = build_predict_dataset(model.input_options, predict_n, previous=np.array(last_predictions))
                 # predict
                 prediction = model.predict(x)
-                last_predictions.append(prediction[0])
+                last_predictions.append(prediction.tolist()[0])
 
             predictions_all.append(last_predictions)
 
@@ -161,7 +167,7 @@ def get_predictions(stock_code):
             x = build_predict_dataset(model.input_options, predict_n)
             # predict
             prediction = model.predict(x)
-            predictions_all.append(prediction[0].tolist())
+            predictions_all.append(prediction.tolist())
 
             # build test set
             x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, snake_size=10)

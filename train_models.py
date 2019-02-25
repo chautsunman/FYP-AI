@@ -44,7 +44,9 @@ def train_models(train_models_data):
     if not path.isdir(SAVED_MODELS_DIR):
         makedirs(SAVED_MODELS_DIR)
 
-    for train_model_data in train_models_data:
+    for train_model_data_idx, train_model_data in enumerate(train_models_data):
+        print("Model {}".format(train_model_data_idx + 1))
+
         # initialize the model
         if train_model_data["model"] == LinearRegression.MODEL:
             model = LinearRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
