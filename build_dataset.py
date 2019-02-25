@@ -142,7 +142,7 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
 
     return x, y
 
-def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, test_set='full', previous=None):
+def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, test_set='full', previous=None, skip_last=None):
     """Build prediction input.
 
     Args:
@@ -163,12 +163,17 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
         stock_data: Stock prices dictionary, same as output of get_stock_data.
         predict: Whether to build the predict feature vector or the test set.
         previous: 1D NumPy array of previous predictions.
+        skip_last: Number of rows to skip.
 
     """
 
     if stock_data is None:
         # Get all the stock data
         stock_data = get_stock_data(input_options["stock_codes"])
+
+    if skip_last is not None:
+        # skip the last n rows
+        stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].iloc[:-skip_last, :]
 
     if previous is not None:
         # append the previous stock prices for using as if they are past data

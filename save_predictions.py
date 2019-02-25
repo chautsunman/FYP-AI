@@ -16,7 +16,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_predict_dataset
+from build_dataset import build_predict_dataset, get_stock_data
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -159,9 +159,29 @@ def get_predictions(stock_code):
             prediction_test = model.predict(x_test)
             past_predictions_all.append(prediction_test.flatten().tolist())
 
-            snakes_all.append(None)
-            upper_all.append(None)
-            lower_all.append(None)
+            # get stock data
+            stock_data = get_stock_data(model.input_options["stock_codes"])
+
+            # predict snakes test set
+            snakes = np.array([[] for _ in range(10)])
+            for _ in range(10):
+                snakes_x = []
+                for snake_idx in range(10):
+                    snakes_x += build_predict_dataset(
+                        model.input_options,
+                        predict_n,
+                        previous=snakes[snake_idx],
+                        skip_last=10 + snake_idx * 10
+                    ).tolist()
+                snakes_prediction = model.predict(np.array(snakes_x))
+                snakes = np.concatenate((snakes, snakes_prediction), axis=1)
+            snakes = np.flipud(snakes)
+            snakes_all.append(snakes.tolist())
+
+            # calculate upper bound and lower bound
+            snakes_y = stock_data[model.input_options["stock_code"]][model.input_options["column"]].values[-100:].reshape(10, 10)
+            upper_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
+            lower_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
         else:
             # get predict input
             x = build_predict_dataset(model.input_options, predict_n)
