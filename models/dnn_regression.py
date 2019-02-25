@@ -76,7 +76,7 @@ class DenseNeuralNetwork(Model):
         },
         "predict_n": {
             "type": OPTION_TYPES["static"],
-            "value": 10
+            "value": 1
         }
     }
 
