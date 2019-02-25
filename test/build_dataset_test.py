@@ -20,6 +20,17 @@ input_options = {
     "column": "adjusted_close"
 }
 
+rnn_input_options = {
+    "config": [
+        {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"},
+        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+    ],
+    "stock_codes": ["GOOGL"],
+    "stock_code": "GOOGL",
+    "column": "adjusted_close",
+    "time_window": 10
+}
+
 index_input_options = {
     "config": [
         {"type": "index_price", "n": 10}
@@ -67,6 +78,54 @@ class TestBuildTrainingDataset(unittest.TestCase):
         self.assertEqual(y[-1].tolist(), prices[-10:].tolist())
 
     def test_btd_3(self):
+        # rnn_input_options, predict 1
+
+        x, y = build_training_dataset(rnn_input_options, 1, stock_data=stock_prices)
+
+        self.assertEqual(x.shape, (3628, 10, 2))
+        self.assertEqual(y.shape, (3628, 1))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[9:19].tolist())
+        self.assertEqual(x[0, 0, 1], prices[:10].mean())
+        self.assertEqual(x[0, 1, 1], prices[1:11].mean())
+        self.assertEqual(x[0, 9, 1], prices[9:19].mean())
+        self.assertEqual(x[1, :, 0].tolist(), prices[10:20].tolist())
+        self.assertEqual(x[1, 0, 1], prices[1:11].mean())
+        self.assertEqual(x[1, 1, 1], prices[2:12].mean())
+        self.assertEqual(x[1, 9, 1], prices[10:20].mean())
+        self.assertEqual(x[-1, :, 0].tolist(), prices[-11:-1].tolist())
+        self.assertEqual(x[-1, 0, 1], prices[-20:-10].mean())
+        self.assertEqual(x[-1, 1, 1], prices[-19:-9].mean())
+        self.assertEqual(x[-1, 9, 1], prices[-11:-1].mean())
+
+        self.assertEqual(y[0][0], prices[19])
+        self.assertEqual(y[-1][0], prices[-1])
+
+    def test_btd_4(self):
+        # rnn_input_options, predict 10
+
+        x, y = build_training_dataset(rnn_input_options, 10, stock_data=stock_prices)
+
+        self.assertEqual(x.shape, (3619, 10, 2))
+        self.assertEqual(y.shape, (3619, 10))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[9:19].tolist())
+        self.assertEqual(x[0, 0, 1], prices[:10].mean())
+        self.assertEqual(x[0, 1, 1], prices[1:11].mean())
+        self.assertEqual(x[0, 9, 1], prices[9:19].mean())
+        self.assertEqual(x[1, :, 0].tolist(), prices[10:20].tolist())
+        self.assertEqual(x[1, 0, 1], prices[1:11].mean())
+        self.assertEqual(x[1, 1, 1], prices[2:12].mean())
+        self.assertEqual(x[1, 9, 1], prices[10:20].mean())
+        self.assertEqual(x[-1, :, 0].tolist(), prices[-20:-10].tolist())
+        self.assertEqual(x[-1, 0, 1], prices[-29:-19].mean())
+        self.assertEqual(x[-1, 1, 1], prices[-28:-18].mean())
+        self.assertEqual(x[-1, 9, 1], prices[-20:-10].mean())
+
+        self.assertEqual(y[0].tolist(), prices[19:29].tolist())
+        self.assertEqual(y[-1].tolist(), prices[-10:].tolist())
+
+    def test_btd_5(self):
         # index_input_options, predict 10
 
         x, y = build_training_dataset(index_input_options, 10, stock_data=stock_prices)
@@ -96,6 +155,30 @@ class TestBuildPredictDataset(unittest.TestCase):
         self.assertEqual(x.tolist(), x_predict)
 
     def test_bpd_3(self):
+        # rnn_input_options, predict 1
+
+        x = build_predict_dataset(rnn_input_options, 1, stock_data=stock_prices)
+
+        self.assertEqual(x.shape, (1, 10, 2))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-10:].tolist())
+        self.assertEqual(x[0, 0, 1], prices[-19:-9].mean())
+        self.assertEqual(x[0, 1, 1], prices[-18:-8].mean())
+        self.assertEqual(x[0, 9, 1], prices[-10:].mean())
+
+    def test_bpd_4(self):
+        # rnn_input_options, predict 10
+
+        x = build_predict_dataset(rnn_input_options, 10, stock_data=stock_prices)
+
+        self.assertEqual(x.shape, (1, 10, 2))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-10:].tolist())
+        self.assertEqual(x[0, 0, 1], prices[-19:-9].mean())
+        self.assertEqual(x[0, 1, 1], prices[-18:-8].mean())
+        self.assertEqual(x[0, 9, 1], prices[-10:].mean())
+
+    def test_bpd_5(self):
         # index_input_options, predict 10
 
         x = build_predict_dataset(index_input_options, 10, stock_data=stock_prices)
@@ -140,6 +223,48 @@ class TestBuildTestDataset(unittest.TestCase):
         y_end = stock_prices["GOOGL"]["adjusted_close"].values[-10:].tolist()
         self.assertEqual(y[0].tolist(), y_start)
         self.assertEqual(y[-1].tolist(), y_end)
+
+    def test_btd_3(self):
+        # rnn_input_options, predict 1
+
+        x, y = build_predict_dataset(rnn_input_options, 1, stock_data=stock_prices, predict=False)
+
+        self.assertEqual(x.shape, (100, 10, 2))
+        self.assertEqual(y.shape, (100, 1))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-110:-100].tolist())
+        self.assertEqual(x[0, 0, 1], prices[-119:-109].mean())
+        self.assertEqual(x[0, 1, 1], prices[-118:-108].mean())
+        self.assertEqual(x[0, 9, 1], prices[-110:-100].mean())
+        self.assertEqual(x[1, :, 0].tolist(), prices[-109:-99].tolist())
+        self.assertEqual(x[1, 0, 1], prices[-118:-108].mean())
+        self.assertEqual(x[1, 1, 1], prices[-117:-107].mean())
+        self.assertEqual(x[1, 9, 1], prices[-109:-99].mean())
+        self.assertEqual(x[-1, :, 0].tolist(), prices[-11:-1].tolist())
+        self.assertEqual(x[-1, 0, 1], prices[-20:-10].mean())
+        self.assertEqual(x[-1, 1, 1], prices[-19:-9].mean())
+        self.assertEqual(x[-1, 9, 1], prices[-11:-1].mean())
+
+    def test_btd_4(self):
+        # rnn_input_options, predict 10
+
+        x, y = build_predict_dataset(rnn_input_options, 10, stock_data=stock_prices, predict=False, snake_size=10)
+
+        self.assertEqual(x.shape, (10, 10, 2))
+        self.assertEqual(y.shape, (10, 10))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-110:-100].tolist())
+        self.assertEqual(x[0, 0, 1], prices[-119:-109].mean())
+        self.assertEqual(x[0, 1, 1], prices[-118:-108].mean())
+        self.assertEqual(x[0, 9, 1], prices[-110:-100].mean())
+        self.assertEqual(x[1, :, 0].tolist(), prices[-100:-90].tolist())
+        self.assertEqual(x[1, 0, 1], prices[-109:-99].mean())
+        self.assertEqual(x[1, 1, 1], prices[-108:-98].mean())
+        self.assertEqual(x[1, 9, 1], prices[-100:-90].mean())
+        self.assertEqual(x[-1, :, 0].tolist(), prices[-20:-10].tolist())
+        self.assertEqual(x[-1, 0, 1], prices[-29:-19].mean())
+        self.assertEqual(x[-1, 1, 1], prices[-28:-18].mean())
+        self.assertEqual(x[-1, 9, 1], prices[-20:-10].mean())
 
 if __name__ == '__main__':
     unittest.main()
