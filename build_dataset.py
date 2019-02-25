@@ -142,7 +142,7 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
 
     return x, y
 
-def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, snake_size=None, previous=None):
+def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, test_set='full', previous=None):
     """Build prediction input.
 
     Args:
@@ -162,7 +162,6 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
         predict_n: Number of days of stock prices to predict
         stock_data: Stock prices dictionary, same as output of get_stock_data.
         predict: Whether to build the predict feature vector or the test set.
-        snake_size: The number of test snakes.
         previous: 1D NumPy array of previous predictions.
 
     """
@@ -208,12 +207,12 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
         # get the labels
         y = get_sliding_window(target, predict_n)[-x.shape[0]:]
 
-        if predict_n == 1:
+        if test_set == "full":
             return x[-100:], y[-100:]
-        else:
+        elif test_set == "snakes":
             # Get non-overlapping windows, aligning to the end
-            x_test = x[::-1][:predict_n*(snake_size):predict_n][::-1]
-            y_test = y[::-1][:predict_n*(snake_size):predict_n][::-1]
+            x_test = x[::-1][:100:10][::-1]
+            y_test = y[::-1][:100:10][::-1]
             return x_test, y_test
 
 def get_input_shape(input_options):

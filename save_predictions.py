@@ -153,9 +153,9 @@ def get_predictions(stock_code):
 
             predictions_all.append(last_predictions)
 
-            # build test set
+            # build full test set
             x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
-            # predict test set
+            # predict full test set
             prediction_test = model.predict(x_test)
             past_predictions_all.append(prediction_test.flatten().tolist())
 
@@ -169,9 +169,9 @@ def get_predictions(stock_code):
             prediction = model.predict(x)
             predictions_all.append(prediction.tolist())
 
-            # build test set
-            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, snake_size=10)
-            # predict test set
+            # build snakes test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
+            # predict snakes test set
             prediction_test = model.predict(x_test)
             snakes_all.append(prediction_test.tolist())
 
@@ -179,7 +179,11 @@ def get_predictions(stock_code):
             upper_all.append((prediction[0] + np.std(prediction_test - y_test, axis=0)).tolist())
             lower_all.append((prediction[0] - np.std(prediction_test - y_test, axis=0)).tolist())
 
-            past_predictions_all.append(None)
+            # build full test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
+            # predict full test set
+            prediction_test = model.predict(x_test)
+            past_predictions_all.append(prediction_test[:, 0].tolist())
 
     models_all += [
         {
