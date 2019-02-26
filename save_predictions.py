@@ -170,6 +170,7 @@ def get_predictions(stock_code):
                     snakes_x += build_predict_dataset(
                         model.input_options,
                         predict_n,
+                        stock_data=stock_data,
                         previous=snakes[snake_idx],
                         skip_last=10 + snake_idx * 10
                     ).tolist()

@@ -112,6 +112,12 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
     if stock_data is None:
         # Get all the stock data
         stock_data = get_stock_data(input_options["stock_codes"])
+    else:
+        # copy the stock data
+        stock_data_input = stock_data
+        stock_data = {}
+        for stock_code in stock_data_input:
+            stock_data[stock_code] = stock_data_input[stock_code].copy()
 
     target = stock_data[input_options["stock_code"]][input_options["column"]].values
 
@@ -170,6 +176,12 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
     if stock_data is None:
         # Get all the stock data
         stock_data = get_stock_data(input_options["stock_codes"])
+    else:
+        # copy the stock data
+        stock_data_input = stock_data
+        stock_data = {}
+        for stock_code in stock_data_input:
+            stock_data[stock_code] = stock_data_input[stock_code].copy()
 
     if skip_last is not None:
         # skip the last n rows
