@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 
 from models.model import Model
 
-from options import OPTION_TYPES
+from options import OPTION_TYPES, rand_all, cross_over_all, mutate_all
 
 class SupportVectorRegression(Model):
     """Support vector regression model."""
@@ -18,13 +18,13 @@ class SupportVectorRegression(Model):
         "kernel": {
             "type": OPTION_TYPES["discrete"],
             "option_config": {
-                "options": ['rbf', 'linear', 'poly', 'rbf', 'sigmoid']
+                "options": ['rbf', 'linear', 'poly', 'sigmoid']
             }
         },
         "degree": {
             "type": OPTION_TYPES["step"],
             "option_config": {
-                "range": [1, 10],
+                "range": [1, 3],
                 "step": 1
             }
         },
@@ -41,7 +41,7 @@ class SupportVectorRegression(Model):
         "tol": {
             "type": OPTION_TYPES["continuous"],
             "option_config": {
-                "range": [0.001, 0.01],
+                "range": [0.001, 1],
             }
         },
         "C": {
@@ -62,19 +62,13 @@ class SupportVectorRegression(Model):
                 "options": [True, False]
             }
         },
-        "cache_size": {
-            "type": OPTION_TYPES["continuous"],
-            "option_config": {
-                "range": [500, 1000],
-            }
-        },
-        "verbose": {
-            "type": OPTION_TYPES["static"],
-            "value": False
-        },
         "max_iter": {
             "type": OPTION_TYPES["static"],
-            "value": -1
+            "value": 10000
+        },
+        "predict_n": {
+            "type": OPTION_TYPES["static"],
+            "value": 10
         }
     }
 
@@ -94,8 +88,6 @@ class SupportVectorRegression(Model):
                 C=self.model_options["C"],
                 epsilon=self.model_options["epsilon"],
                 shrinking=self.model_options["shrinking"],
-                cache_size=self.model_options["cache_size"],
-                verbose=self.model_options["verbose"],
                 max_iter=self.model_options["max_iter"]
             ) for _ in range(model_options["predict_n"])]
         else:
@@ -121,7 +113,10 @@ class SupportVectorRegression(Model):
             A NumPy array of the prediction.
         """
 
-        return np.array([model.predict(x).flatten() for model in self.model]).flatten()
+        predictions = np.array([model.predict(x).flatten() for model in self.model]).T
+        if x.shape[0] == 1:
+            return predictions.flatten()
+        return predictions
 
     def save(self, saved_model_dir):
         """Saves the model in saved_model_dir.
@@ -301,3 +296,47 @@ class SupportVectorRegression(Model):
                 ))
 
         return models
+
+    @staticmethod
+    def random_models(n):
+        return [
+            SupportVectorRegression(
+                rand_all(SupportVectorRegression.MODEL_OPTIONS_CONFIG),
+                {
+                    "config": [
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close"
+                }
+            )
+            for _ in range(n)
+        ]
+
+    @staticmethod
+    def evolve(models, n):
+        """Cross-over and breed new models."""
+
+        new_models = models
+
+        best_model_options = [model.model_options for model in models]
+
+        while len(new_models) < n:
+            new_model_options = cross_over_all(SupportVectorRegression.MODEL_OPTIONS_CONFIG, best_model_options)
+            new_model_options = mutate_all(new_model_options, SupportVectorRegression.MODEL_OPTIONS_CONFIG, 0.2)
+            new_models.append(SupportVectorRegression(
+                new_model_options,
+                {
+                    "config": [
+                        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
+                        {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                    ],
+                    "stock_codes": ["GOOGL"],
+                    "stock_code": "GOOGL",
+                    "column": "adjusted_close"
+                }
+            ))
+
+        return new_models

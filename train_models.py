@@ -10,7 +10,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset
+from build_dataset import build_training_dataset
 
 SAVED_MODELS_DIR = path.join(".", "saved_models")
 SAVED_MODELS_DIR_MAP = {
@@ -44,7 +44,9 @@ def train_models(train_models_data):
     if not path.isdir(SAVED_MODELS_DIR):
         makedirs(SAVED_MODELS_DIR)
 
-    for train_model_data in train_models_data:
+    for train_model_data_idx, train_model_data in enumerate(train_models_data):
+        print("Model {}".format(train_model_data_idx + 1))
+
         # initialize the model
         if train_model_data["model"] == LinearRegression.MODEL:
             model = LinearRegression(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
@@ -57,8 +59,13 @@ def train_models(train_models_data):
         elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
             model = DenseNeuralNetwork(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
 
-        # prepare the data and train the model
-        x, y = build_dataset(train_model_data["inputOptions"], model.model_options["predict_n"], True)
+        # prepare the data
+        x, y = build_training_dataset(train_model_data["inputOptions"], model.model_options["predict_n"])
+        if train_model_data["model"] in [LinearRegression.MODEL, SupportVectorRegression.MODEL, DenseNeuralNetwork.MODEL]:
+            # get the training set
+            x = x[:-100]
+            y = y[:-100]
+        # train the model
         model.train(x, y)
 
         # save the model

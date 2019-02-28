@@ -16,13 +16,13 @@ class DiscreteOption(object):
 
     @staticmethod
     def rand(option_config):
-        return np.random.choice(option_config["options"])
+        return option_config["options"][np.random.randint(len(option_config["options"]))]
 
     @staticmethod
     def mutate(option, option_config):
         # print (option_config)
         return DiscreteOption.rand(option_config)
-    
+
 class ContinuousOption(object):
     #option_config = {range:[1,10]}
 
@@ -49,8 +49,10 @@ class StepOption(object):
 
     @staticmethod
     def rand(option_config):
-        return ((np.floor(np.random.rand() * (option_config["range"][1] - option_config["range"][0]) / option_config["step"] 
-            + option_config["range"][0] / option_config["step"]) * option_config["step"]
+        return np.random.choice(np.arange(
+            option_config["range"][0],
+            option_config["range"][1] + option_config["step"],
+            option_config["step"]
         ))
 
     @staticmethod
@@ -73,7 +75,7 @@ def rand(option_type, option_config):
 
 
 def mutate(option_type, option, option_config, probability=0.2):
-    if np.random.rand() < probability: 
+    if np.random.rand() < probability:
         if option_type == DiscreteOption.TYPE:
             return DiscreteOption.mutate(option, option_config)
         elif option_type == ContinuousOption.TYPE:
@@ -98,6 +100,32 @@ def rand_all(configs):
             results[key] = rand(configs[key]["type"], configs[key]["option_config"])
     return results
 
+def cross_over_all(config, options):
+    """Cross-over options."""
+
+    new_options = {}
+
+    for option in config:
+        if config[option]["type"] == OPTION_TYPES["nested"]:
+            new_options[option] = cross_over_all(
+                config[option]["option_config"],
+                [o[option] for o in options]
+            )
+        elif config[option]["type"] == OPTION_TYPES["array"]:
+            new_options[option] = [
+                cross_over_all(
+                    option_config,
+                    [o[option][i] for o in options]
+                )
+                for i, option_config in enumerate(config[option]["option_configs"])
+            ]
+        elif config[option]["type"] == OPTION_TYPES["static"]:
+            new_options[option] = config[option]["value"]
+        else:
+            new_options[option] = options[np.random.randint(len(options))][option]
+
+    return new_options
+
 def mutate_all(options, configs, probability=0.2):
     results = {}
     for key in configs:
@@ -114,4 +142,3 @@ def mutate_all(options, configs, probability=0.2):
         else:
             results[key] = mutate(configs[key]["type"],options[key],configs[key]["option_config"], probability)
     return results
-    

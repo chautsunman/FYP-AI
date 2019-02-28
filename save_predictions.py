@@ -16,7 +16,7 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_dataset
+from build_dataset import build_predict_dataset, get_stock_data
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -75,43 +75,137 @@ def get_predictions(stock_code):
     """
 
     predictions_all = []
+    snakes_all = []
+    upper_all = []
+    lower_all = []
     models_all = []
+    past_predictions_all = []
 
-    # get all predictions and models data
+    # linear model predictions
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
-    predictions = []
-    for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
-    predictions_all += predictions
+    for model_idx, model in enumerate(models):
+        print("Linear Regression Model {}".format(model_idx + 1))
+        x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
+        prediction = model.predict(x)
+        predictions_all.append(prediction.tolist())
+        snakes_all.append(None)
+        upper_all.append(None)
+        lower_all.append(None)
+        past_predictions_all.append(None)
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
+    # svr model predictions
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
-    predictions = []
-    for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
-    predictions_all += predictions
+    for model_idx, model in enumerate(models):
+        print("Support Vector Regression Model {}".format(model_idx + 1))
+        x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
+        prediction = model.predict(x)
+        predictions_all.append(prediction.tolist())
+        snakes_all.append(None)
+        upper_all.append(None)
+        lower_all.append(None)
+        past_predictions_all.append(None)
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
+    # linear index model predictions
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL]) or []
-    predictions = []
-    for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
-    predictions_all += predictions
+    for model_idx, model in enumerate(models):
+        print("Linear Index Regression Model {}".format(model_idx + 1))
+        x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
+        prediction = model.predict(x)
+        predictions_all.append(prediction.tolist())
+        snakes_all.append(None)
+        upper_all.append(None)
+        lower_all.append(None)
+        past_predictions_all.append(None)
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
+    # svr index model predictions
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
-    predictions = []
-    for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
-    predictions_all += predictions
+    for model_idx, model in enumerate(models):
+        print("Support Vector Index Regression Model {}".format(model_idx + 1))
+        x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
+        prediction = model.predict(x)
+        predictions_all.append(prediction.tolist())
+        snakes_all.append(None)
+        upper_all.append(None)
+        lower_all.append(None)
+        past_predictions_all.append(None)
     models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
+    # neural network predictions
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
-    predictions = []
-    for model in models:
-        x = build_dataset(model.input_options, model.model_options["predict_n"], False)
-        predictions.append(model.predict(x))
-    predictions_all += predictions
+
+    for model_idx, model in enumerate(models):
+        print("Neural Network Model {}".format(model_idx + 1))
+
+        predict_n = model.model_options["predict_n"]
+
+        if predict_n == 1:
+            last_predictions = []
+
+            for _ in range(10):
+                # get predict input
+                x = build_predict_dataset(model.input_options, predict_n, previous=np.array(last_predictions))
+                # predict
+                prediction = model.predict(x)
+                last_predictions.append(prediction.tolist()[0])
+
+            predictions_all.append(last_predictions)
+
+            # build full test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
+            # predict full test set
+            prediction_test = model.predict(x_test)
+            past_predictions_all.append(prediction_test.flatten().tolist())
+
+            # get stock data
+            stock_data = get_stock_data(model.input_options["stock_codes"])
+
+            # predict snakes test set
+            snakes = np.array([[] for _ in range(10)])
+            for _ in range(10):
+                snakes_x = []
+                for snake_idx in range(10):
+                    snakes_x += build_predict_dataset(
+                        model.input_options,
+                        predict_n,
+                        stock_data=stock_data,
+                        previous=snakes[snake_idx],
+                        skip_last=10 + snake_idx * 10
+                    ).tolist()
+                snakes_prediction = model.predict(np.array(snakes_x))
+                snakes = np.concatenate((snakes, snakes_prediction), axis=1)
+            snakes = np.flipud(snakes)
+            snakes_all.append(snakes.tolist())
+
+            # calculate upper bound and lower bound
+            snakes_y = stock_data[model.input_options["stock_code"]][model.input_options["column"]].values[-100:].reshape(10, 10)
+            upper_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
+            lower_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
+        else:
+            # get predict input
+            x = build_predict_dataset(model.input_options, predict_n)
+            # predict
+            prediction = model.predict(x)
+            predictions_all.append(prediction.tolist())
+
+            # build snakes test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
+            # predict snakes test set
+            prediction_test = model.predict(x_test)
+            snakes_all.append(prediction_test.tolist())
+
+            # calculate upper bound and lower bound
+            upper_all.append((prediction[0] + np.std(prediction_test - y_test, axis=0)).tolist())
+            lower_all.append((prediction[0] - np.std(prediction_test - y_test, axis=0)).tolist())
+
+            # build full test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
+            # predict full test set
+            prediction_test = model.predict(x_test)
+            past_predictions_all.append(prediction_test[:, 0].tolist())
+
     models_all += [
         {
             "modelName": model.get_model_display_name(),
@@ -122,9 +216,14 @@ def get_predictions(stock_code):
         for model in models
     ]
 
-    predictions_all = [prediction.tolist() for prediction in predictions_all]
-
-    return {"predictions": predictions_all, "models": models_all}
+    return {
+        "predictions": predictions_all,
+        "snakes": snakes_all,
+        "upper": upper_all,
+        "lower": lower_all,
+        "rollingPredict": past_predictions_all,
+        "models": models_all
+    }
 
 def save_predictions_local(stock_code):
     """Saves predictions in local in saved_predictions/<stock_code>."""
