@@ -43,5 +43,7 @@ def predict(stock_code):
         "predictions": predictions["predictions"],
         "upper": predictions["upper"],
         "lower": predictions["lower"],
+        "snakes": predictions["snakes"],
+        "rollingPredict": predictions["rollingPredict"],
         "models": predictions["models"]
     })
