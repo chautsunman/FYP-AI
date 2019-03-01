@@ -3,6 +3,7 @@ from datetime import date
 import json
 import os
 import glob
+import csv 
 
 import firebase_admin
 from firebase_admin import credentials
@@ -17,6 +18,7 @@ from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
 from build_dataset import build_predict_dataset, get_stock_data
+import rating_calculation
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -81,6 +83,20 @@ def get_predictions(stock_code):
     models_all = []
     past_predictions_all = []
 
+    NUM_OF_DAY = 100
+    TIME_INTERVAL = 10
+
+    with open('./data/stock_prices/' + stock_code + '.csv', 'r') as csv_file:
+        reader = csv.reader(csv_file)
+        # remove header and get the latest 101 data
+        stock_data_segment = list(reader)[1:NUM_OF_DAY + 2]
+
+    actual_prices = []
+    for line in stock_data_segment:
+        actual_prices.append(float(line[5]))
+
+    actual_prices = actual_prices[::-1]
+
     # linear model predictions
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
     for model_idx, model in enumerate(models):
@@ -92,7 +108,12 @@ def get_predictions(stock_code):
         upper_all.append(None)
         lower_all.append(None)
         past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
+    models_all += [{
+        "modelName": model.get_model_display_name()
+        # "score": rating_calculation.model_rating(actual_prices, snakes[i], TIME_INTERVAL),
+        # "direction": rating_calculation.direction(actual_prices[-1], predictions[i][-1])
+    } for i, model in enumerate(models)]
 
     # svr model predictions
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
@@ -118,7 +139,11 @@ def get_predictions(stock_code):
         upper_all.append(None)
         lower_all.append(None)
         past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        # "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        # "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+    } for model in models]
 
     # svr index model predictions
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
@@ -131,10 +156,15 @@ def get_predictions(stock_code):
         upper_all.append(None)
         lower_all.append(None)
         past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        # "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        # "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+    } for model in models]
 
     # neural network predictions
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
+    nn_start_idx = len(models_all)
 
     for model_idx, model in enumerate(models):
         print("Neural Network Model {}".format(model_idx + 1))
@@ -211,9 +241,11 @@ def get_predictions(stock_code):
             "modelName": model.get_model_display_name(),
             "model": "dnn",
             "modelOptions": model.model_options,
-            "inputOptions": model.input_options
+            "inputOptions": model.input_options,
+            "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL),
+            "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
         }
-        for model in models
+        for i, model in enumerate(models)
     ]
 
     return {
@@ -222,7 +254,8 @@ def get_predictions(stock_code):
         "upper": upper_all,
         "lower": lower_all,
         "rollingPredict": past_predictions_all,
-        "models": models_all
+        "models": models_all,
+        "grade": rating_calculation.calculate_traffic_light_score(models_all)
     }
 
 def save_predictions_local(stock_code):
