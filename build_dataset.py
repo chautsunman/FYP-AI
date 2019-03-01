@@ -187,10 +187,25 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
         # skip the last n rows
         stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].iloc[:-skip_last, :]
 
-    if previous is not None:
+    if previous is not None and previous.shape[0] > 0:
         # append the previous stock prices for using as if they are past data
-        new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_options["column"]])
+        last_price = stock_data[input_options["stock_code"]][input_options["column"]].values[-1]
+        new_values = None
+        if previous.shape[0] > 1:
+            new_values = pd.DataFrame({
+                input_options["column"]: previous,
+                "change": np.concatenate((
+                    np.array([(previous[0] - last_price) / last_price]),
+                    (previous[1:] - previous[:-1]) / previous[:-1]
+                ))
+            })
+        else:
+            new_values = pd.DataFrame({
+                input_options["column"]: previous,
+                "change": np.array([(previous[0] - last_price) / last_price])
+            })
         stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].append(new_values, ignore_index=True)
+    return stock_data["GOOGL"]
 
     target = stock_data[input_options["stock_code"]][input_options["column"]].values
 
