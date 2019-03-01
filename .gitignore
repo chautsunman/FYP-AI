@@ -4,6 +4,11 @@ saved_models
 saved_predictions
 credentials
 
+evolution
+evolution_tensorboard_logs
+evolution_model_graphs
+last_run.json
+
 __pycache__
 *.pyc
 .ipynb_checkpoints
