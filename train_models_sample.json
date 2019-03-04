@@ -38,6 +38,7 @@
                     {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"},
                     {"type": "moving_avg", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
                 ],
+                "normalize": "min_max",
                 "stock_codes": ["GOOGL"],
                 "stock_code": "GOOGL",
                 "column": "adjusted_close"
@@ -110,6 +111,36 @@
                 "config": [
                     {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
                 ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
+        },
+        {
+            "model": "dnn",
+            "stockCode": "GOOGL",
+            "modelOptions": {
+                "network_type": "dense",
+                "net": {
+                    "layers": [
+                        {"units": 32, "activation": "relu"},
+                        {"units": 64, "activation": "relu"},
+                        {}
+                    ],
+                    "loss": "mse",
+                    "optimizer": "Adam",
+                    "learning_rate": 0.001,
+                    "epochs": 10,
+                    "batch_size": 32,
+                    "metrics": ["mse"]
+                },
+                "predict_n": 10
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "normalize": "min_max",
                 "stock_codes": ["GOOGL"],
                 "stock_code": "GOOGL",
                 "column": "adjusted_close"
@@ -241,6 +272,36 @@
             "model": "dnn",
             "stockCode": "GOOGL",
             "modelOptions": {
+                "network_type": "dense",
+                "net": {
+                    "layers": [
+                        {"units": 32, "activation": "relu"},
+                        {"units": 64, "activation": "relu"},
+                        {}
+                    ],
+                    "loss": "mse",
+                    "optimizer": "Adam",
+                    "learning_rate": 0.001,
+                    "epochs": 10,
+                    "batch_size": 32,
+                    "metrics": ["mse"]
+                },
+                "predict_n": 1
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "normalize": "min_max",
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close"
+            }
+        },
+        {
+            "model": "dnn",
+            "stockCode": "GOOGL",
+            "modelOptions": {
 				"network_type": "SimpleRNN",
                 "net": {
                     "layers": [
@@ -293,6 +354,38 @@
                 "config": [
                     {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
                 ],
+                "stock_codes": ["GOOGL"],
+                "stock_code": "GOOGL",
+                "column": "adjusted_close",
+				"time_window": 10
+            }
+        },
+        {
+            "model": "dnn",
+            "stockCode": "GOOGL",
+            "modelOptions": {
+				"network_type": "LSTM",
+                "net": {
+                    "layers": [
+						{"layer_type": "LSTM", "units": 32, "activation": "relu", "recurrent_activation": "hard_sigmoid", "return_sequences": true, "stateful": false},
+                        {"layer_type": "LSTM", "units": 64, "activation": "relu", "recurrent_activation": "hard_sigmoid", "return_sequences": false, "stateful": false},
+                        {"units": 32, "activation": "relu"},
+                        {}
+                    ],
+                    "loss": "mse",
+                    "optimizer": "Adam",
+                    "learning_rate": 0.001,
+                    "epochs": 10,
+                    "batch_size": 32,
+                    "metrics": ["mse"]
+                },
+                "predict_n": 1
+            },
+            "inputOptions": {
+                "config": [
+                    {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close"}
+                ],
+                "normalize": "min_max",
                 "stock_codes": ["GOOGL"],
                 "stock_code": "GOOGL",
                 "column": "adjusted_close",

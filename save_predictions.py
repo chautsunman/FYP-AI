@@ -3,6 +3,7 @@ from datetime import date
 import json
 import os
 import glob
+import csv 
 
 import firebase_admin
 from firebase_admin import credentials
@@ -16,7 +17,8 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 from models.dnn_regression import DenseNeuralNetwork
 
-from build_dataset import build_predict_dataset
+from build_dataset import build_predict_dataset, get_stock_data
+import rating_calculation
 
 from train_models import SAVED_MODELS_DIR_MAP
 
@@ -81,6 +83,20 @@ def get_predictions(stock_code):
     models_all = []
     past_predictions_all = []
 
+    NUM_OF_DAY = 100
+    TIME_INTERVAL = 10
+
+    with open('./data/stock_prices/' + stock_code + '.csv', 'r') as csv_file:
+        reader = csv.reader(csv_file)
+        # remove header and get the latest 101 data
+        stock_data_segment = list(reader)[1:NUM_OF_DAY + 2]
+
+    actual_prices = []
+    for line in stock_data_segment:
+        actual_prices.append(float(line[5]))
+
+    actual_prices = actual_prices[::-1]
+
     # linear model predictions
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
     for model_idx, model in enumerate(models):
@@ -92,7 +108,12 @@ def get_predictions(stock_code):
         upper_all.append(None)
         lower_all.append(None)
         past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+
+    models_all += [{
+        "modelName": model.get_model_display_name()
+        # "score": rating_calculation.model_rating(actual_prices, snakes[i], TIME_INTERVAL),
+        # "direction": rating_calculation.direction(actual_prices[-1], predictions[i][-1])
+    } for i, model in enumerate(models)]
 
     # svr model predictions
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
@@ -118,7 +139,11 @@ def get_predictions(stock_code):
         upper_all.append(None)
         lower_all.append(None)
         past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        # "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        # "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+    } for model in models]
 
     # svr index model predictions
     models = SupportVectorIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorIndexRegression.MODEL]) or []
@@ -131,10 +156,15 @@ def get_predictions(stock_code):
         upper_all.append(None)
         lower_all.append(None)
         past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+    models_all += [{
+        "modelName": model.get_model_display_name(),
+        # "score": rating_calculation.model_rating(actual_prices, snakes[0], TIME_INTERVAL),
+        # "direction": rating_calculation.direction(actual_prices[-1], predictions[0][-1])
+    } for model in models]
 
     # neural network predictions
     models = DenseNeuralNetwork.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[DenseNeuralNetwork.MODEL]) or []
+    nn_start_idx = len(models_all)
 
     for model_idx, model in enumerate(models):
         print("Neural Network Model {}".format(model_idx + 1))
@@ -153,15 +183,36 @@ def get_predictions(stock_code):
 
             predictions_all.append(last_predictions)
 
-            # build test set
+            # build full test set
             x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
-            # predict test set
+            # predict full test set
             prediction_test = model.predict(x_test)
             past_predictions_all.append(prediction_test.flatten().tolist())
 
-            snakes_all.append(None)
-            upper_all.append(None)
-            lower_all.append(None)
+            # get stock data
+            stock_data = get_stock_data(model.input_options["stock_codes"])
+
+            # predict snakes test set
+            snakes = np.array([[] for _ in range(10)])
+            for _ in range(10):
+                snakes_x = []
+                for snake_idx in range(10):
+                    snakes_x += build_predict_dataset(
+                        model.input_options,
+                        predict_n,
+                        stock_data=stock_data,
+                        previous=snakes[snake_idx],
+                        skip_last=10 + snake_idx * 10
+                    ).tolist()
+                snakes_prediction = model.predict(np.array(snakes_x))
+                snakes = np.concatenate((snakes, snakes_prediction), axis=1)
+            snakes = np.flipud(snakes)
+            snakes_all.append(snakes.tolist())
+
+            # calculate upper bound and lower bound
+            snakes_y = stock_data[model.input_options["stock_code"]][model.input_options["column"]].values[-100:].reshape(10, 10)
+            upper_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
+            lower_all.append((last_predictions - np.std(snakes - snakes_y, axis=0)).tolist())
         else:
             # get predict input
             x = build_predict_dataset(model.input_options, predict_n)
@@ -169,9 +220,9 @@ def get_predictions(stock_code):
             prediction = model.predict(x)
             predictions_all.append(prediction.tolist())
 
-            # build test set
-            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, snake_size=10)
-            # predict test set
+            # build snakes test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
+            # predict snakes test set
             prediction_test = model.predict(x_test)
             snakes_all.append(prediction_test.tolist())
 
@@ -179,16 +230,22 @@ def get_predictions(stock_code):
             upper_all.append((prediction[0] + np.std(prediction_test - y_test, axis=0)).tolist())
             lower_all.append((prediction[0] - np.std(prediction_test - y_test, axis=0)).tolist())
 
-            past_predictions_all.append(None)
+            # build full test set
+            x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
+            # predict full test set
+            prediction_test = model.predict(x_test)
+            past_predictions_all.append(prediction_test[:, 0].tolist())
 
     models_all += [
         {
             "modelName": model.get_model_display_name(),
             "model": "dnn",
             "modelOptions": model.model_options,
-            "inputOptions": model.input_options
+            "inputOptions": model.input_options,
+            "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL),
+            "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
         }
-        for model in models
+        for i, model in enumerate(models)
     ]
 
     return {
@@ -197,7 +254,8 @@ def get_predictions(stock_code):
         "upper": upper_all,
         "lower": lower_all,
         "rollingPredict": past_predictions_all,
-        "models": models_all
+        "models": models_all,
+        "grade": rating_calculation.calculate_traffic_light_score(models_all)
     }
 
 def save_predictions_local(stock_code):

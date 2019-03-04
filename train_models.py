@@ -59,8 +59,15 @@ def train_models(train_models_data):
         elif train_model_data["model"] == DenseNeuralNetwork.MODEL:
             model = DenseNeuralNetwork(train_model_data["modelOptions"], train_model_data["inputOptions"], stock_code=train_model_data["stockCode"])
 
-        # prepare the data and train the model
-        x, y = build_training_dataset(train_model_data["inputOptions"], model.model_options["predict_n"])
+        # prepare the data
+        x, y, other_data = build_training_dataset(train_model_data["inputOptions"], model.model_options["predict_n"])
+        if train_model_data["model"] in [LinearRegression.MODEL, SupportVectorRegression.MODEL, DenseNeuralNetwork.MODEL]:
+            # get the training set
+            x = x[:-100]
+            y = y[:-100]
+        if "normalize" in train_model_data["inputOptions"]:
+            model.input_options["normalize_data"] = other_data["normalize_data"]
+        # train the model
         model.train(x, y)
 
         # save the model

@@ -82,6 +82,38 @@ def get_stock_data(stock_codes):
 
     return stock_data
 
+def normalize(data, input_options, normalize_type, normalize_data=None):
+    """Normalize data."""
+
+    if normalize_data is None:
+        if normalize_type == "min_max":
+            data_min = None
+            data_max = None
+            if "time_window" not in input_options:
+                data_min = np.nanmin(data, axis=0)
+                data_max = np.nanmax(data, axis=0)
+                return (data - data_min) / (data_max - data_min), {"min": data_min.tolist(), "max": data_max.tolist()}
+            else:
+                data_shape = data.shape
+                data = data.reshape(-1, data_shape[2])
+                data_min = np.nanmin(data, axis=0)
+                data_max = np.nanmax(data, axis=0)
+                data = (data - data_min) / (data_max - data_min)
+                data = data.reshape(-1, data_shape[1], data_shape[2])
+                return data, {"min": data_min.tolist(), "max": data_max.tolist()}
+    else:
+        if normalize_type == "min_max":
+            if "time_window" not in input_options:
+                return (data - np.array(normalize_data["min"])) / (np.array(normalize_data["max"]) - np.array(normalize_data["min"]))
+            else:
+                data_shape = data.shape
+                data = data.reshape(-1, data_shape[2])
+                data = (data - np.array(normalize_data["min"])) / (np.array(normalize_data["max"]) - np.array(normalize_data["min"]))
+                data = data.reshape(-1, data_shape[1], data_shape[2])
+                return data
+
+    return data
+
 transform = {
     "moving_avg": get_moving_avg,
     "lookback": get_lookback
@@ -112,14 +144,22 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
     if stock_data is None:
         # Get all the stock data
         stock_data = get_stock_data(input_options["stock_codes"])
+    else:
+        # copy the stock data
+        stock_data_input = stock_data
+        stock_data = {}
+        for stock_code in stock_data_input:
+            stock_data[stock_code] = stock_data_input[stock_code].copy()
 
     target = stock_data[input_options["stock_code"]][input_options["column"]].values
+
+    other_data = {}
 
     # Special case: index price
     if len(input_options["config"]) == 1 and input_options["config"][0]["type"] == "index_price":
         x = np.arange(1, input_options["config"][0]["n"] + 1).reshape(-1, 1)
         y = target[-input_options["config"][0]["n"]:]
-        return x, y
+        return x, y, other_data
 
     # transform the data to features
     config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
@@ -137,12 +177,17 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
         time_window = input_options["time_window"]
         x = get_sliding_window(x, time_window)
 
+    # normalize features
+    if "normalize" in input_options:
+        x, normalize_data = normalize(x, input_options, input_options["normalize"])
+        other_data["normalize_data"] = normalize_data
+
     # get the labels
     y = get_sliding_window(target, predict_n)[-x.shape[0]:]
 
-    return x, y
+    return x, y, other_data
 
-def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, snake_size=None, previous=None):
+def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, test_set='full', previous=None, skip_last=None):
     """Build prediction input.
 
     Args:
@@ -162,18 +207,42 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
         predict_n: Number of days of stock prices to predict
         stock_data: Stock prices dictionary, same as output of get_stock_data.
         predict: Whether to build the predict feature vector or the test set.
-        snake_size: The number of test snakes.
         previous: 1D NumPy array of previous predictions.
+        skip_last: Number of rows to skip.
 
     """
 
     if stock_data is None:
         # Get all the stock data
         stock_data = get_stock_data(input_options["stock_codes"])
+    else:
+        # copy the stock data
+        stock_data_input = stock_data
+        stock_data = {}
+        for stock_code in stock_data_input:
+            stock_data[stock_code] = stock_data_input[stock_code].copy()
 
-    if previous is not None:
+    if skip_last is not None:
+        # skip the last n rows
+        stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].iloc[:-skip_last, :]
+
+    if previous is not None and previous.shape[0] > 0:
         # append the previous stock prices for using as if they are past data
-        new_values = pd.DataFrame(previous.reshape(-1, 1), columns=[input_options["column"]])
+        last_price = stock_data[input_options["stock_code"]][input_options["column"]].values[-1]
+        new_values = None
+        if previous.shape[0] > 1:
+            new_values = pd.DataFrame({
+                input_options["column"]: previous,
+                "change": np.concatenate((
+                    np.array([(previous[0] - last_price) / last_price]),
+                    (previous[1:] - previous[:-1]) / previous[:-1]
+                ))
+            })
+        else:
+            new_values = pd.DataFrame({
+                input_options["column"]: previous,
+                "change": np.array([(previous[0] - last_price) / last_price])
+            })
         stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].append(new_values, ignore_index=True)
 
     target = stock_data[input_options["stock_code"]][input_options["column"]].values
@@ -202,18 +271,22 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
         time_window = input_options["time_window"]
         x = get_sliding_window(x, time_window)
 
+    # normalize features
+    if "normalize" in input_options:
+        x = normalize(x, input_options, input_options["normalize"], input_options["normalize_data"])
+
     if predict:
         return np.expand_dims(x[-1], axis=0)
     else:
         # get the labels
         y = get_sliding_window(target, predict_n)[-x.shape[0]:]
 
-        if predict_n == 1:
+        if test_set == "full":
             return x[-100:], y[-100:]
-        else:
+        elif test_set == "snakes":
             # Get non-overlapping windows, aligning to the end
-            x_test = x[::-1][:predict_n*(snake_size):predict_n][::-1]
-            y_test = y[::-1][:predict_n*(snake_size):predict_n][::-1]
+            x_test = x[::-1][:100:10][::-1]
+            y_test = y[::-1][:100:10][::-1]
             return x_test, y_test
 
 def get_input_shape(input_options):
