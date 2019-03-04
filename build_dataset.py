@@ -82,6 +82,38 @@ def get_stock_data(stock_codes):
 
     return stock_data
 
+def normalize(data, input_options, normalize_type, normalize_data=None):
+    """Normalize data."""
+
+    if normalize_data is None:
+        if normalize_type == "min_max":
+            data_min = None
+            data_max = None
+            if "time_window" not in input_options:
+                data_min = np.nanmin(data, axis=0)
+                data_max = np.nanmax(data, axis=0)
+                return (data - data_min) / (data_max - data_min), {"min": data_min.tolist(), "max": data_max.tolist()}
+            else:
+                data_shape = data.shape
+                data = data.reshape(-1, data_shape[2])
+                data_min = np.nanmin(data, axis=0)
+                data_max = np.nanmax(data, axis=0)
+                data = (data - data_min) / (data_max - data_min)
+                data = data.reshape(-1, data_shape[1], data_shape[2])
+                return data, {"min": data_min.tolist(), "max": data_max.tolist()}
+    else:
+        if normalize_type == "min_max":
+            if "time_window" not in input_options:
+                return (data - np.array(normalize_data["min"])) / (np.array(normalize_data["max"]) - np.array(normalize_data["min"]))
+            else:
+                data_shape = data.shape
+                data = data.reshape(-1, data_shape[2])
+                data = (data - np.array(normalize_data["min"])) / (np.array(normalize_data["max"]) - np.array(normalize_data["min"]))
+                data = data.reshape(-1, data_shape[1], data_shape[2])
+                return data
+
+    return data
+
 transform = {
     "moving_avg": get_moving_avg,
     "lookback": get_lookback
@@ -121,11 +153,13 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
 
     target = stock_data[input_options["stock_code"]][input_options["column"]].values
 
+    other_data = {}
+
     # Special case: index price
     if len(input_options["config"]) == 1 and input_options["config"][0]["type"] == "index_price":
         x = np.arange(1, input_options["config"][0]["n"] + 1).reshape(-1, 1)
         y = target[-input_options["config"][0]["n"]:]
-        return x, y
+        return x, y, other_data
 
     # transform the data to features
     config_mapper = lambda config: transform[config["type"]](stock_data, skip_last=predict_n, **config)
@@ -143,10 +177,15 @@ def build_training_dataset(input_options, predict_n, stock_data=None):
         time_window = input_options["time_window"]
         x = get_sliding_window(x, time_window)
 
+    # normalize features
+    if "normalize" in input_options:
+        x, normalize_data = normalize(x, input_options, input_options["normalize"])
+        other_data["normalize_data"] = normalize_data
+
     # get the labels
     y = get_sliding_window(target, predict_n)[-x.shape[0]:]
 
-    return x, y
+    return x, y, other_data
 
 def build_predict_dataset(input_options, predict_n, stock_data=None, predict=True, test_set='full', previous=None, skip_last=None):
     """Build prediction input.
@@ -205,7 +244,6 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
                 "change": np.array([(previous[0] - last_price) / last_price])
             })
         stock_data[input_options["stock_code"]] = stock_data[input_options["stock_code"]].append(new_values, ignore_index=True)
-    return stock_data["GOOGL"]
 
     target = stock_data[input_options["stock_code"]][input_options["column"]].values
 
@@ -232,6 +270,10 @@ def build_predict_dataset(input_options, predict_n, stock_data=None, predict=Tru
     if "time_window" in input_options:
         time_window = input_options["time_window"]
         x = get_sliding_window(x, time_window)
+
+    # normalize features
+    if "normalize" in input_options:
+        x = normalize(x, input_options, input_options["normalize"], input_options["normalize_data"])
 
     if predict:
         return np.expand_dims(x[-1], axis=0)
