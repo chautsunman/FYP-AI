@@ -88,9 +88,9 @@ class DenseNeuralNetwork(Model):
                 "value": "dense"
             },
             "units": {
-                "type": OPTION_TYPES["discrete"],
+                "type": OPTION_TYPES["range"],
                 "option_config": {
-                    "options": [8, 16, 32, 64, 128]
+                    "range": [1, 256]
                 }
             },
             "activation": {
@@ -106,9 +106,9 @@ class DenseNeuralNetwork(Model):
                 "value": "SimpleRNN"
             },
             "units": {
-                "type": OPTION_TYPES["discrete"],
+                "type": OPTION_TYPES["range"],
                 "option_config": {
-                    "options": [8, 16, 32, 64, 128]
+                    "range": [1, 256]
                 }
             },
             "activation": {
@@ -132,9 +132,9 @@ class DenseNeuralNetwork(Model):
                 "value": "LSTM"
             },
             "units": {
-                "type": OPTION_TYPES["discrete"],
+                "type": OPTION_TYPES["range"],
                 "option_config": {
-                    "options": [8, 16, 32, 64, 128]
+                    "range": [1, 256]
                 }
             },
             "activation": {
@@ -164,9 +164,9 @@ class DenseNeuralNetwork(Model):
                 "value": "GRU"
             },
             "units": {
-                "type": OPTION_TYPES["discrete"],
+                "type": OPTION_TYPES["range"],
                 "option_config": {
-                    "options": [8, 16, 32, 64, 128]
+                    "range": [1, 256]
                 }
             },
             "activation": {
@@ -834,9 +834,11 @@ class DenseNeuralNetwork(Model):
             if len(parent_layers) > 1:
                 change_layer_idx = np.random.randint(0, len(parent_layers) - 1)
                 change_layer_type = parent_layers[change_layer_idx]["layer_type"]
-                new_model_options["net"]["layers"][change_layer_idx]["units"] = rand(
+                new_model_options["net"]["layers"][change_layer_idx]["units"] = mutate(
                     DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["units"]["type"],
-                    DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["units"]["option_config"]
+                    parent_net["layers"][change_layer_idx]["units"],
+                    DenseNeuralNetwork.LAYER_CONFIG[change_layer_type]["units"]["option_config"],
+                    probability=1.0
                 )
         elif mutation == "change_activation":
             # change the activation of a hidden layer
