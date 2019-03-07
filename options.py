@@ -1,7 +1,10 @@
+import math
+
 import numpy as np
 
 OPTION_TYPES = {
     "discrete": "discrete",
+    "range": "range",
     "continuous": "continuous",
     "step": "step",
     "nested": "nested",
@@ -22,6 +25,19 @@ class DiscreteOption(object):
     def mutate(option, option_config):
         # print (option_config)
         return DiscreteOption.rand(option_config)
+
+class RangeOption(object):
+    TYPE = OPTION_TYPES["range"]
+
+    @staticmethod
+    def rand(option_config):
+        return np.random.randint(option_config["range"][0], option_config["range"][1] + 1)
+
+    @staticmethod
+    def mutate(option, option_config):
+        low = max(math.floor(option / 2), option_config["range"][0])
+        high = min(math.ceil(option * 2), option_config["range"][1])
+        return np.random.randint(low, high + 1)
 
 class ContinuousOption(object):
     #option_config = {range:[1,10]}
@@ -68,6 +84,8 @@ class StepOption(object):
 def rand(option_type, option_config):
     if option_type == DiscreteOption.TYPE:
         return DiscreteOption.rand(option_config)
+    elif option_type == RangeOption.TYPE:
+        return RangeOption.rand(option_config)
     elif option_type == ContinuousOption.TYPE:
         return ContinuousOption.rand(option_config)
     elif option_type == StepOption.TYPE:
@@ -78,6 +96,8 @@ def mutate(option_type, option, option_config, probability=0.2):
     if np.random.rand() < probability:
         if option_type == DiscreteOption.TYPE:
             return DiscreteOption.mutate(option, option_config)
+        elif option_type == RangeOption.TYPE:
+            return RangeOption.mutate(option, option_config)
         elif option_type == ContinuousOption.TYPE:
             return ContinuousOption.mutate(option, option_config)
         elif option_type == StepOption.TYPE:

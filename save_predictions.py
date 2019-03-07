@@ -212,7 +212,7 @@ def get_predictions(stock_code):
             # calculate upper bound and lower bound
             snakes_y = stock_data[model.input_options["stock_code"]][model.input_options["column"]].values[-100:].reshape(10, 10)
             upper_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
-            lower_all.append((last_predictions + np.std(snakes - snakes_y, axis=0)).tolist())
+            lower_all.append((last_predictions - np.std(snakes - snakes_y, axis=0)).tolist())
         else:
             # get predict input
             x = build_predict_dataset(model.input_options, predict_n)
