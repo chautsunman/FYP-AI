@@ -10,10 +10,14 @@ class TestModelScore(unittest.TestCase):
             actual: 
             predicted: (n,time_interval) 2d-list of
         Output:
-            10000 * sum(
+            Model score ranged [0...10]
             
     """
     def test_best_case(self):
+        """
+            Test the best case (when prediction is perfectly correct)
+            score should be equal to 10
+        """
         # Generate [ 1...101 ]
         actual = np.arange(1, 102).tolist()
 
@@ -21,41 +25,49 @@ class TestModelScore(unittest.TestCase):
         predicted = np.arange(2, 102).reshape(10, 10).tolist()
 
         time_interval = 10
-        self.assertEqual(model_rating(actual, predicted, time_interval), 1)
+        self.assertEqual(model_rating(actual, predicted, time_interval), 10)
 
-    def test_worst_case():
+    def test_worst_case(self):
+        """
+            Test the worst case (when prediction is perfectly wrong)
+            Score should be 10
+        """
         # Generate [ 1...101 ]
         actual = np.arange(1, 102).tolist()
 
-        # Generate [2*1.01...11*1.01], [12*1.01...21*1.01], ..., [92*1.01...101*1.01]
-        predicted = (np.arange(2, 102).reshape(10, 10) * 1.01).tolist()
+        # Generate [ 1000...1009 ], [ 1010...1019 ]..., [ 1091...1099 ]
+        predicted = np.arange(1000, 1100).reshape(10, 10).tolist()
 
         time_interval = 10
         self.assertEqual(model_rating(actual, predicted, time_interval, 0))
 
-    """
-        Assume alpha = 0.2,
-        Test the score when MAE=0.005
-    """
     def test_correct_over(self):
+        """
+            Test the case when the direction is correct but magnitude is
+            overestimated
+        """
         # Generate [ 1...101 ]
         actual = np.arange(1, 102).tolist()
 
-        # Generate [ 2...11 ], [ 12...21 ], ..., [ 92...101 ]
+        # Generate [ 2...11 ], [ 12...21 ], ..., [ 92...101 ] * 100.05%
         predicted = (np.arange(2, 102).reshape(10, 10) * 1.005).tolist()
 
         time_interval = 10
-        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.811605)
+        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.811605 * 10)
 
     def test_correct_under(self):
+        """
+            Test the case when the direction is correct but magnitude is
+            underestimated 
+        """
         # Generate [ 101...1 ]
         actual = np.arange(1, 102).tolist()
 
-        # Generate [ 2...11 ], [ 12...21 ], ..., [ 92...101 ]
+        # Generate [ 2...11 ], [ 12...21 ], ..., [ 92...101 ] * 99.5%
         predicted = (np.arange(2, 102).reshape(10, 10) * 0.995).tolist()
 
         time_interval = 10
-        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.851605)
+        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.851605 * 10)
 
     """
     def test_incorrect_direction():
