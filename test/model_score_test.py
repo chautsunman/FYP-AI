@@ -25,7 +25,7 @@ class TestModelScore(unittest.TestCase):
         predicted = np.arange(2, 102).reshape(10, 10).tolist()
 
         time_interval = 10
-        self.assertEqual(model_rating(actual, predicted, time_interval), 10)
+        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 1)
 
     def test_worst_case(self):
         """
@@ -33,7 +33,7 @@ class TestModelScore(unittest.TestCase):
             Score should be 10
         """
         # Generate [ 1...101 ]
-        actual = np.arange(1, 102).tolist()
+        actual = np.arange(2000, 2101).tolist()
 
         # Generate [ 1000...1009 ], [ 1010...1019 ]..., [ 1091...1099 ]
         predicted = np.arange(1000, 1100).reshape(10, 10).tolist()
@@ -53,7 +53,7 @@ class TestModelScore(unittest.TestCase):
         predicted = (np.arange(2, 102).reshape(10, 10) * 1.005).tolist()
 
         time_interval = 10
-        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.811605 * 10)
+        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.811605)
 
     def test_correct_under(self):
         """
@@ -67,7 +67,7 @@ class TestModelScore(unittest.TestCase):
         predicted = (np.arange(2, 102).reshape(10, 10) * 0.995).tolist()
 
         time_interval = 10
-        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.851605 * 10)
+        self.assertAlmostEqual(model_rating(actual, predicted, time_interval), 0.851605)
 
     """
     def test_incorrect_direction():

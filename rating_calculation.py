@@ -34,7 +34,7 @@ def isSameDirection(actual_prices, predicted_prices, t_0, time_interval):
 
 def isUnderestimated(actual_prices, predicted_prices, t_0, time_interval):
     # given that they are same direction
-    return abs(actual_prices[t_0 + time_interval] - actual_prices[t_0]) > abs(predicted_prices[t_0 + time_interval - 1] - actual_prices[t_0])
+    return abs(actual_prices[t_0 + time_interval] - actual_prices[t_0]) >= abs(predicted_prices[t_0 + time_interval - 1] - actual_prices[t_0])
 
 
 # f(e)
