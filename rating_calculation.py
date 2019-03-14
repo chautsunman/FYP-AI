@@ -96,4 +96,4 @@ def calculate_traffic_light_score(models):
     for i in models:
         traffic_light_score += i["score"] * i["direction"]
 
-    return (traffic_light_score/len(models)
+    return (traffic_light_score/len(models))
