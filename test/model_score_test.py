@@ -39,7 +39,7 @@ class TestModelScore(unittest.TestCase):
         predicted = np.arange(1000, 1100).reshape(10, 10).tolist()
 
         time_interval = 10
-        self.assertEqual(model_rating(actual, predicted, time_interval, 0))
+        self.assertEqual(model_rating(actual, predicted, time_interval), 0)
 
     def test_correct_over(self):
         """
