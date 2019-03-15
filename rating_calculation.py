@@ -37,6 +37,10 @@ def isUnderestimated(actual_prices, predicted_prices, t_0, time_interval):
     return abs(actual_prices[t_0 + time_interval] - actual_prices[t_0]) >= abs(predicted_prices[t_0 + time_interval - 1] - actual_prices[t_0])
 
 
+def percentageChange(today_price, predicted_price):
+    return (predicted_price / today_price - 1)
+
+
 # f(e)
 def model_scoring_func(error_rate):
     # return (error_rate - 1)**4 if error_rate < 1 else 0

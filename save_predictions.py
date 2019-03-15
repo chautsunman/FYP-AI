@@ -243,7 +243,8 @@ def get_predictions(stock_code):
             "modelOptions": model.model_options,
             "inputOptions": model.input_options,
             "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL),
-            "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
+            "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
+            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
         }
         for i, model in enumerate(models)
     ]
