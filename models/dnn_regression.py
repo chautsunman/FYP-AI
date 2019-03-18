@@ -211,7 +211,7 @@ class DenseNeuralNetwork(Model):
                 "layer_type": "SimpleRNN",
                 "units": 10,
                 "activation": "relu",
-                "return_sequences": True,
+                "return_sequences": False,
                 "stateful": False
             },
             {
@@ -224,7 +224,7 @@ class DenseNeuralNetwork(Model):
                 "units": 10,
                 "activation": "relu",
                 "recurrent_activation": "hard_sigmoid",
-                "return_sequences": True,
+                "return_sequences": False,
                 "stateful": False
             },
             {
@@ -237,7 +237,7 @@ class DenseNeuralNetwork(Model):
                 "units": 10,
                 "activation": "relu",
                 "recurrent_activation": "hard_sigmoid",
-                "return_sequences": True,
+                "return_sequences": False,
                 "stateful": False
             },
             {
@@ -871,8 +871,8 @@ class DenseNeuralNetwork(Model):
         if network_type in ["SimpleRNN", "LSTM", "GRU"]:
             for layer_idx, layer in enumerate(new_model_options["net"]["layers"]):
                 if layer["layer_type"] == "dense":
-                    new_model_options["net"]["layers"][layer_idx - 1]["return_sequences"] = True
+                    new_model_options["net"]["layers"][layer_idx - 1]["return_sequences"] = False
                     break
-                new_model_options["net"]["layers"][layer_idx]["return_sequences"] = False
+                new_model_options["net"]["layers"][layer_idx]["return_sequences"] = True
 
         return new_model_options, mutation
