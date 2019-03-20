@@ -32,6 +32,25 @@ rnn_input_options = {
     "time_window": 10
 }
 
+skip_input_options = {
+    "config": [
+        {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close", "skip": 10}
+    ],
+    "stock_codes": ["GOOGL"],
+    "stock_code": "GOOGL",
+    "column": "adjusted_close"
+}
+
+skip_rnn_input_options = {
+    "config": [
+        {"type": "lookback", "n": 1, "stock_code": "GOOGL", "column": "adjusted_close", "skip": 10}
+    ],
+    "stock_codes": ["GOOGL"],
+    "stock_code": "GOOGL",
+    "column": "adjusted_close",
+    "time_window": 10
+}
+
 normalize_input_options = {
     "config": [
         {"type": "lookback", "n": 10, "stock_code": "GOOGL", "column": "adjusted_close"}
@@ -218,6 +237,8 @@ class TestBuildPredictDataset(unittest.TestCase):
         self.assertEqual(x[0].tolist(), x_predict)
 
     def test_bpd_2(self):
+        # input_options, predict 10
+
         x = build_predict_dataset(input_options, 10, stock_data=stock_prices)
 
         self.assertEqual(x.shape, (1, 11))
@@ -251,13 +272,31 @@ class TestBuildPredictDataset(unittest.TestCase):
         self.assertEqual(x[0, 9, 1], prices[-10:].mean())
 
     def test_bpd_5(self):
+        # skip_input_options, predict 1
+
+        x = build_predict_dataset(skip_input_options, 1, stock_data=stock_prices)
+
+        self.assertEqual(x.shape, (1, 10))
+
+        self.assertEqual(x[0].tolist(), prices[-20:-10].tolist())
+
+    def test_bpd_6(self):
+        # skip_rnn_input_options, predict 1
+
+        x = build_predict_dataset(skip_rnn_input_options, 1, stock_data=stock_prices)
+
+        self.assertEqual(x.shape, (1, 10, 1))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-20:-10].tolist())
+
+    def test_bpd_7(self):
         # index_input_options, predict 10
 
         x = build_predict_dataset(index_input_options, 10, stock_data=stock_prices)
 
         self.assertEqual(x.tolist(), [[i] for i in range(11, 21)])
 
-    def test_bpd_6(self):
+    def test_bpd_8(self):
         # normalize_input_options, predict 1
 
         data_min = np.array([np.nanmin(prices[i:i + 3637]) for i in range(10)])
@@ -272,7 +311,7 @@ class TestBuildPredictDataset(unittest.TestCase):
 
         self.assertEqual(x[0].tolist(), ((prices[-10:] - data_min) / (data_max - data_min)).tolist())
 
-    def test_bpd_7(self):
+    def test_bpd_9(self):
         # normalize_rnn_input_options, predict 1
 
         data_min = np.array([np.nanmin(prices)])
@@ -465,6 +504,70 @@ class TestBuildTestDataset(unittest.TestCase):
         self.assertEqual(y[-1].tolist(), prices[-10:].tolist())
 
     def test_btd_9(self):
+        # skip_input_options, predict 1, full test set
+
+        x, y = build_predict_dataset(skip_input_options, 1, stock_data=stock_prices, predict=False)
+
+        self.assertEqual(x.shape, (100, 10))
+        self.assertEqual(y.shape, (100, 1))
+
+        self.assertEqual(x[0].tolist(), prices[-120:-110].tolist())
+        self.assertEqual(x[1].tolist(), prices[-119:-109].tolist())
+        self.assertEqual(x[-1].tolist(), prices[-21:-11].tolist())
+
+        self.assertEqual(y[0][0], prices[-100])
+        self.assertEqual(y[1][0], prices[-99])
+        self.assertEqual(y[-1][0], prices[-1])
+
+    def test_btd_10(self):
+        # skip_input_options, predict 1, snakes test set
+
+        x, y = build_predict_dataset(skip_input_options, 1, stock_data=stock_prices, predict=False, test_set="snakes")
+
+        self.assertEqual(x.shape, (10, 10))
+        self.assertEqual(y.shape, (10, 1))
+
+        self.assertEqual(x[0].tolist(), prices[-111:-101].tolist())
+        self.assertEqual(x[1].tolist(), prices[-101:-91].tolist())
+        self.assertEqual(x[-1].tolist(), prices[-21:-11].tolist())
+
+        self.assertEqual(y[0][0], prices[-91])
+        self.assertEqual(y[1][0], prices[-81])
+        self.assertEqual(y[-1][0], prices[-1])
+
+    def test_btd_11(self):
+        # skip_rnn_input_options, predict 1, full test set
+
+        x, y = build_predict_dataset(skip_rnn_input_options, 1, stock_data=stock_prices, predict=False)
+
+        self.assertEqual(x.shape, (100, 10, 1))
+        self.assertEqual(y.shape, (100, 1))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-120:-110].tolist())
+        self.assertEqual(x[1, :, 0].tolist(), prices[-119:-109].tolist())
+        self.assertEqual(x[-1, :, 0].tolist(), prices[-21:-11].tolist())
+
+        self.assertEqual(y[0][0], prices[-100])
+        self.assertEqual(y[1][0], prices[-99])
+        self.assertEqual(y[-1][0], prices[-1])
+
+    def test_btd_12(self):
+        # skip_rnn_input_options, predict 1, snakes test set
+
+        x, y = build_predict_dataset(skip_rnn_input_options, 1, stock_data=stock_prices, predict=False, test_set="snakes")
+
+        self.assertEqual(x.shape, (10, 10, 1))
+        self.assertEqual(y.shape, (10, 1))
+
+        self.assertEqual(x[0, :, 0].tolist(), prices[-111:-101].tolist())
+        self.assertEqual(x[1, :, 0].tolist(), prices[-101:-91].tolist())
+        self.assertEqual(x[-1, :, 0].tolist(), prices[-21:-11].tolist())
+
+        self.assertEqual(y[0][0], prices[-91])
+        self.assertEqual(y[1][0], prices[-81])
+        self.assertEqual(y[-1][0], prices[-1])
+
+    def test_btd_13(self):
         # normalize_input_options, predict 1, full test set
 
         data_min = np.array([np.nanmin(prices[i:i + 3637]) for i in range(10)])
@@ -486,7 +589,7 @@ class TestBuildTestDataset(unittest.TestCase):
         self.assertEqual(y[1][0], prices[-99])
         self.assertEqual(y[-1][0], prices[-1])
 
-    def test_btd_10(self):
+    def test_btd_14(self):
         # normalize_rnn_input_options, predict 1, full test set
 
         data_min = np.array([np.nanmin(prices)])
