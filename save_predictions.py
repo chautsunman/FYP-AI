@@ -22,7 +22,7 @@ import rating_calculation
 
 from train_models import SAVED_MODELS_DIR_MAP
 
-VAILD_MODEL_THRESHOLD = 0
+VAILD_MODEL_THRESHOLD = 0.3
 
 def get_saved_predictions(stock_code, location="local"):
     """Gets saved predictions directly
