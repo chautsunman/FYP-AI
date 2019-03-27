@@ -46,7 +46,7 @@ def get_moving_avg(stock_data, stock_code, column, n, skip_last = None, **kwargs
 
     return get_sliding_window(target, n).mean(axis=1).reshape(-1,1)
 
-def get_lookback(stock_data, stock_code, column, n, skip_last = None, **kwargs):
+def get_lookback(stock_data, stock_code, column, n, skip=None, skip_last = None, **kwargs):
     """Get a lookback array
     Args:
         stock_data: pandas dataframe containing all the stock data, from oldest to newest
@@ -63,6 +63,9 @@ def get_lookback(stock_data, stock_code, column, n, skip_last = None, **kwargs):
 
     if skip_last is not None:
         target = target[:-skip_last]
+
+    if skip is not None:
+        target = target[:-skip]
 
     return get_sliding_window(target, n)
 
