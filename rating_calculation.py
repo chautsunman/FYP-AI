@@ -7,13 +7,14 @@ from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
 import matplotlib.pyplot as plt
 import math
+import numpy as np
+
+VAILD_MODEL_THRESHOLD = 0
 
 # Calculate the MAE of the prediction from the model
 # Assume following format:
 # actual prices = [price_0, price_1, ..., price_n] # n+1 day in total
 # predicted prices = [price_1, ..., price_n] # (snakes), n day in total
-
-
 def relative_mean_absolute_error(actual_prices, predicted_prices, t_0, time_interval):
     rmae = 0
 
@@ -42,14 +43,14 @@ def percentageChange(today_price, predicted_price):
 
 
 # f(e)
-def model_scoring_func(error_rate):
-    # return (error_rate - 1)**4 if error_rate < 1 else 0
-    return 10000 * (error_rate - 0.1)**4 if error_rate < 0.1 else 0
+def model_scoring_func(error_rate, sd):
+    return ((error_rate - 0.1)/0.1)**4 if error_rate < 0.1 else 0
+    # return ((error_rate - sd)/sd)**4 if error_rate < sd else 0
 
 # Calculate the rating based on RMAE
 
 
-def model_rating(actual_prices, snakes, time_interval):
+def model_rating(actual_prices, snakes, time_interval, sd):
 
     predicted_prices = []
 
@@ -87,17 +88,26 @@ def model_rating(actual_prices, snakes, time_interval):
         else:
             reward = 0.8
 
-        rating += (1 - alpha) * model_scoring_func(error_rate) + alpha * reward
+        rating += (1 - alpha) * model_scoring_func(error_rate, sd) + alpha * reward
 
     return rating / (len(predicted_prices) / time_interval)
 
-
-def direction(today_price, predicted_price):
-    return 1 if predicted_price >= today_price else -1
-
-def calculate_traffic_light_score(models):
+def calculate_traffic_light_score(models, sd):
     traffic_light_score = 0
-    for i in models:
-        traffic_light_score += i["score"] * i["direction"]
+    counter = 0
 
-    return (traffic_light_score/len(models))
+    for i in models:
+        if i["score"] < VAILD_MODEL_THRESHOLD:
+            continue
+
+        if i["percentageChange"] > 0:
+            traffic_light_score += i["score"] * theta(i["percentageChange"], sd)
+        else:
+            traffic_light_score -= i["score"] * theta(i["percentageChange"], sd)
+        
+        counter +=1
+
+    return (traffic_light_score/counter)
+
+def theta(percentageChange, sd):
+    return math.expm1(100*abs(percentageChange)) / math.expm1(100*sd)

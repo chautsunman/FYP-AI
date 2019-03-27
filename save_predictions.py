@@ -92,10 +92,20 @@ def get_predictions(stock_code):
         stock_data_segment = list(reader)[1:NUM_OF_DAY + 2]
 
     actual_prices = []
+
     for line in stock_data_segment:
         actual_prices.append(float(line[5]))
 
     actual_prices = actual_prices[::-1]
+    
+    actual_prices_all = pd.read_csv(
+        './data/stock_prices/' + stock_code + '.csv').values[:, 5]
+    # x = np.array(actual_prices_all)
+    # x = x[-1000:]
+    nxt = actual_prices_all[1:]
+    prev = actual_prices_all[: -1]
+    sd = np.std((nxt - prev)/prev)
+    
 
     # linear model predictions
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
@@ -238,12 +248,13 @@ def get_predictions(stock_code):
 
     models_all += [
         {
+            "modelIndex": i + nn_start_idx,
             "modelName": model.get_model_display_name(),
             "model": "dnn",
             "modelOptions": model.model_options,
             "inputOptions": model.input_options,
-            "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL),
-            "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
+            "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
+            # "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
             "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
         }
         for i, model in enumerate(models)
@@ -256,7 +267,7 @@ def get_predictions(stock_code):
         "lower": lower_all,
         "rollingPredict": past_predictions_all,
         "models": models_all,
-        "grade": rating_calculation.calculate_traffic_light_score(models_all)
+        "grade": rating_calculation.calculate_traffic_light_score(models_all, sd)
     }
 
 def save_predictions_local(stock_code):
