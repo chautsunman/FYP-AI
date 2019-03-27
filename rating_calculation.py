@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 import math
 import numpy as np
 
-VAILD_MODEL_THRESHOLD = 0
-
 # Calculate the MAE of the prediction from the model
 # Assume following format:
 # actual prices = [price_0, price_1, ..., price_n] # n+1 day in total
@@ -92,7 +90,8 @@ def model_rating(actual_prices, snakes, time_interval, sd):
 
     return rating / (len(predicted_prices) / time_interval)
 
-def calculate_traffic_light_score(models, sd):
+
+def calculate_traffic_light_score(models, sd, VAILD_MODEL_THRESHOLD):
     traffic_light_score = 0
     counter = 0
 

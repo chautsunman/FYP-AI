@@ -47,5 +47,6 @@ def predict(stock_code):
         "lower": predictions["lower"],
         "rollingPredict": predictions["rollingPredict"],
         "models": predictions["models"],
-        "grade": predictions["grade"]
+        "grade": predictions["grade"],
+        "threshold": predictions["threshold"]
     })

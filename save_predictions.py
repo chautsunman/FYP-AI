@@ -22,6 +22,8 @@ import rating_calculation
 
 from train_models import SAVED_MODELS_DIR_MAP
 
+VAILD_MODEL_THRESHOLD = 0
+
 def get_saved_predictions(stock_code, location="local"):
     """Gets saved predictions directly
 
@@ -267,7 +269,8 @@ def get_predictions(stock_code):
         "lower": lower_all,
         "rollingPredict": past_predictions_all,
         "models": models_all,
-        "grade": rating_calculation.calculate_traffic_light_score(models_all, sd)
+        "grade": rating_calculation.calculate_traffic_light_score(models_all, sd, VAILD_MODEL_THRESHOLD),
+        "threshold": VAILD_MODEL_THRESHOLD
     }
 
 def save_predictions_local(stock_code):
