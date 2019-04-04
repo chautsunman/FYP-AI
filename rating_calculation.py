@@ -5,7 +5,6 @@ from train_models import train_models
 
 from models.linear_index_regression import LinearIndexRegression
 from models.svr_index_regression import SupportVectorIndexRegression
-import matplotlib.pyplot as plt
 import math
 import numpy as np
 
@@ -103,7 +102,7 @@ def calculate_traffic_light_score(models, sd, VAILD_MODEL_THRESHOLD):
             traffic_light_score += i["score"] * theta(i["percentageChange"], sd)
         else:
             traffic_light_score -= i["score"] * theta(i["percentageChange"], sd)
-        
+
         counter +=1
 
     return (traffic_light_score/counter)
