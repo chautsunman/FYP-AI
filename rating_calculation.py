@@ -94,6 +94,9 @@ def calculate_traffic_light_score(models, sd, VAILD_MODEL_THRESHOLD):
     traffic_light_score = 0
     counter = 0
 
+    if len(models) == 0:
+        return 0
+
     for i in models:
         if i["score"] < VAILD_MODEL_THRESHOLD:
             continue
