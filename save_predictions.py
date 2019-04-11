@@ -3,7 +3,7 @@ from datetime import date
 import json
 import os
 import glob
-import csv 
+import csv
 
 import firebase_admin
 from firebase_admin import credentials
@@ -99,15 +99,14 @@ def get_predictions(stock_code):
         actual_prices.append(float(line[5]))
 
     actual_prices = actual_prices[::-1]
-    
-    actual_prices_all = pd.read_csv(
-        './data/stock_prices/' + stock_code + '.csv').values[:, 5]
+
+    actual_prices_all = np.flipud(pd.read_csv('./data/stock_prices/' + stock_code + '.csv')["adjusted_close"].values)
     # x = np.array(actual_prices_all)
     # x = x[-1000:]
     nxt = actual_prices_all[1:]
     prev = actual_prices_all[: -1]
     sd = np.std((nxt - prev)/prev)
-    
+
 
     # linear model predictions
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
@@ -257,7 +256,15 @@ def get_predictions(stock_code):
             "inputOptions": model.input_options,
             "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
             # "direction": rating_calculation.direction(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
-            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
+            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
+            "trendScore": rating_calculation.calculate_trend_score(
+                np.array(past_predictions_all[i + nn_start_idx]),
+                np.array(actual_prices_all[-100:])
+            ),
+            "trend": rating_calculation.count_trend(
+                np.array(predictions_all[i + nn_start_idx]),
+                actual_prices_all[-1]
+            )
         }
         for i, model in enumerate(models)
     ]

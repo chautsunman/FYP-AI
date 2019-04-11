@@ -41,8 +41,8 @@ def percentageChange(today_price, predicted_price):
 
 # f(e)
 def model_scoring_func(error_rate, sd):
-    return ((error_rate - 0.1)/0.1)**4 if error_rate < 0.1 else 0
-    # return ((error_rate - sd)/sd)**4 if error_rate < sd else 0
+    # return ((error_rate - 0.1)/0.1)**4 if error_rate < 0.1 else 0
+    return ((error_rate - sd)/sd)**4 if error_rate < sd else 0
 
 # Calculate the rating based on RMAE
 
@@ -94,9 +94,6 @@ def calculate_traffic_light_score(models, sd, VAILD_MODEL_THRESHOLD):
     traffic_light_score = 0
     counter = 0
 
-    if len(models) == 0:
-        return 0
-
     for i in models:
         if i["score"] < VAILD_MODEL_THRESHOLD:
             continue
@@ -108,7 +105,19 @@ def calculate_traffic_light_score(models, sd, VAILD_MODEL_THRESHOLD):
 
         counter +=1
 
-    return (traffic_light_score/counter)
+    return (traffic_light_score/counter) if counter > 0 else 0
 
 def theta(percentageChange, sd):
     return math.expm1(100*abs(percentageChange)) / math.expm1(100*sd)
+
+def calculate_trend_score(predictions, prices):
+    score = 0
+    for i in range(10):
+        predictions_direction = np.sign(predictions[i + 1:] - predictions[:-i - 1])
+        prices_direction = np.sign(prices[i + 1:] - prices[:-i - 1])
+        score += np.sum(np.where(predictions_direction == prices_direction, 1, 0)) / predictions.shape[0]
+    return score / 10
+
+def count_trend(predictions, last_price):
+    trends = np.where(predictions - last_price >= 0, 1, -1)
+    return 1 if np.sum(np.where(trends == 1, 1, 0)) else -1
