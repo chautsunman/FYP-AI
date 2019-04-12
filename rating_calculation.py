@@ -120,4 +120,4 @@ def calculate_trend_score(predictions, prices):
 
 def count_trend(predictions, last_price):
     trends = np.where(predictions - last_price >= 0, 1, -1)
-    return 1 if np.sum(np.where(trends == 1, 1, 0)) else -1
+    return 1 if np.sum(np.where(trends == 1, 1, 0)) >= predictions.shape[0] / 2 else -1
