@@ -143,7 +143,6 @@ def get_predictions(stock_code):
             "modelIndex": i + nn_start_idx,
             "modelName": model.get_model_display_name(),
             "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
-<<<<<<< HEAD
             "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
             "trendScore": rating_calculation.calculate_trend_score(
                 np.array(past_predictions_all[i + nn_start_idx]),
@@ -153,9 +152,6 @@ def get_predictions(stock_code):
                 np.array(predictions_all[i + nn_start_idx]),
                 actual_prices_all[-1]
             )
-=======
-            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
->>>>>>> a95af7fa7fb290476f1b5e599d67357d8602adb4
         }
         for i, model in enumerate(models)
     ]
@@ -195,7 +191,6 @@ def get_predictions(stock_code):
             "modelIndex": i + nn_start_idx,
             "modelName": model.get_model_display_name(),
             "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
-<<<<<<< HEAD
             "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
             "trendScore": rating_calculation.calculate_trend_score(
                 np.array(past_predictions_all[i + nn_start_idx]),
@@ -205,9 +200,6 @@ def get_predictions(stock_code):
                 np.array(predictions_all[i + nn_start_idx]),
                 actual_prices_all[-1]
             )
-=======
-            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
->>>>>>> a95af7fa7fb290476f1b5e599d67357d8602adb4
         }
         for i, model in enumerate(models)
     ]
