@@ -109,16 +109,18 @@ def get_predictions(stock_code):
 
 
     # linear model predictions
+    nn_start_idx = len(models_all)
+
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
+
     for model_idx, model in enumerate(models):
         print("Linear Regression Model {}".format(model_idx + 1))
+
+        predict_n = model.model_options["predict_n"]
+
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
-        snakes_all.append(None)
-        upper_all.append(None)
-        lower_all.append(None)
-        past_predictions_all.append(None)
 
         # build snakes test set
         x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
@@ -141,6 +143,7 @@ def get_predictions(stock_code):
             "modelIndex": i + nn_start_idx,
             "modelName": model.get_model_display_name(),
             "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
+<<<<<<< HEAD
             "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
             "trendScore": rating_calculation.calculate_trend_score(
                 np.array(past_predictions_all[i + nn_start_idx]),
@@ -150,14 +153,23 @@ def get_predictions(stock_code):
                 np.array(predictions_all[i + nn_start_idx]),
                 actual_prices_all[-1]
             )
+=======
+            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
+>>>>>>> a95af7fa7fb290476f1b5e599d67357d8602adb4
         }
         for i, model in enumerate(models)
     ]
 
     # svr model predictions
+    nn_start_idx = len(models_all)
+
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
+
     for model_idx, model in enumerate(models):
         print("Support Vector Regression Model {}".format(model_idx + 1))
+
+        predict_n = model.model_options["predict_n"]
+        
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
@@ -183,6 +195,7 @@ def get_predictions(stock_code):
             "modelIndex": i + nn_start_idx,
             "modelName": model.get_model_display_name(),
             "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
+<<<<<<< HEAD
             "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1]),
             "trendScore": rating_calculation.calculate_trend_score(
                 np.array(past_predictions_all[i + nn_start_idx]),
@@ -192,6 +205,9 @@ def get_predictions(stock_code):
                 np.array(predictions_all[i + nn_start_idx]),
                 actual_prices_all[-1]
             )
+=======
+            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
+>>>>>>> a95af7fa7fb290476f1b5e599d67357d8602adb4
         }
         for i, model in enumerate(models)
     ]
