@@ -109,35 +109,84 @@ def get_predictions(stock_code):
 
 
     # linear model predictions
+    nn_start_idx = len(models_all)
+
     models = LinearRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearRegression.MODEL]) or []
+
     for model_idx, model in enumerate(models):
         print("Linear Regression Model {}".format(model_idx + 1))
+
+        predict_n = model.model_options["predict_n"]
+
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
-        snakes_all.append(None)
-        upper_all.append(None)
-        lower_all.append(None)
-        past_predictions_all.append(None)
 
-    models_all += [{
-        "modelName": model.get_model_display_name()
-        # "score": rating_calculation.model_rating(actual_prices, snakes[i], TIME_INTERVAL),
-        # "direction": rating_calculation.direction(actual_prices[-1], predictions[i][-1])
-    } for i, model in enumerate(models)]
+        # build snakes test set
+        x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
+        # predict snakes test set
+        prediction_test = model.predict(x_test)
+        snakes_all.append(prediction_test.tolist())
+
+        # calculate upper bound and lower bound
+        upper_all.append((prediction[0] + np.std(prediction_test - y_test, axis=0)).tolist())
+        lower_all.append((prediction[0] - np.std(prediction_test - y_test, axis=0)).tolist())
+
+        # build full test set
+        x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
+        # predict full test set
+        prediction_test = model.predict(x_test)
+        past_predictions_all.append(prediction_test[:, 0].tolist())
+
+    models_all += [
+        {
+            "modelIndex": i + nn_start_idx,
+            "modelName": model.get_model_display_name(),
+            "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
+            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
+        }
+        for i, model in enumerate(models)
+    ]
 
     # svr model predictions
+    nn_start_idx = len(models_all)
+
     models = SupportVectorRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[SupportVectorRegression.MODEL]) or []
+
     for model_idx, model in enumerate(models):
         print("Support Vector Regression Model {}".format(model_idx + 1))
+
+        predict_n = model.model_options["predict_n"]
+        
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
-        snakes_all.append(None)
-        upper_all.append(None)
-        lower_all.append(None)
-        past_predictions_all.append(None)
-    models_all += [{"modelName": model.get_model_display_name()} for model in models]
+        
+        # build snakes test set
+        x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
+        # predict snakes test set
+        prediction_test = model.predict(x_test)
+        snakes_all.append(prediction_test.tolist())
+
+        # calculate upper bound and lower bound
+        upper_all.append((prediction[0] + np.std(prediction_test - y_test, axis=0)).tolist())
+        lower_all.append((prediction[0] - np.std(prediction_test - y_test, axis=0)).tolist())
+
+        # build full test set
+        x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False)
+        # predict full test set
+        prediction_test = model.predict(x_test)
+        past_predictions_all.append(prediction_test[:, 0].tolist())
+
+    models_all += [
+        {
+            "modelIndex": i + nn_start_idx,
+            "modelName": model.get_model_display_name(),
+            "score": rating_calculation.model_rating(actual_prices, snakes_all[i + nn_start_idx], TIME_INTERVAL, sd),
+            "percentageChange": rating_calculation.percentageChange(actual_prices[-1], predictions_all[i + nn_start_idx][-1])
+        }
+        for i, model in enumerate(models)
+    ]
 
     # linear index model predictions
     models = LinearIndexRegression.get_all_models(stock_code, SAVED_MODELS_DIR_MAP[LinearIndexRegression.MODEL]) or []
