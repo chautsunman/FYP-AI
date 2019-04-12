@@ -121,3 +121,12 @@ def calculate_trend_score(predictions, prices):
 def count_trend(predictions, last_price):
     trends = np.where(predictions - last_price >= 0, 1, -1)
     return 1 if np.sum(np.where(trends == 1, 1, 0)) >= predictions.shape[0] / 2 else -1
+
+def calculate_stock_trend_score(models, accurate_threshold):
+    score = 0
+    accurate_models = 0
+    for model in models:
+        if model["trendScore"] >= accurate_threshold:
+            score += model["trendScore"] * model["trend"]
+            accurate_models += 1
+    return score / accurate_models if accurate_models > 0 else 0

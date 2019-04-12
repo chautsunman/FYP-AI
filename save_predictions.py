@@ -22,7 +22,7 @@ import rating_calculation
 
 from train_models import SAVED_MODELS_DIR_MAP
 
-VAILD_MODEL_THRESHOLD = 0.3
+VALID_MODEL_THRESHOLD = 0.4
 
 def get_saved_predictions(stock_code, location="local"):
     """Gets saved predictions directly
@@ -165,11 +165,11 @@ def get_predictions(stock_code):
         print("Support Vector Regression Model {}".format(model_idx + 1))
 
         predict_n = model.model_options["predict_n"]
-        
+
         x = build_predict_dataset(model.input_options, model.model_options["predict_n"])
         prediction = model.predict(x)
         predictions_all.append(prediction.tolist())
-        
+
         # build snakes test set
         x_test, y_test = build_predict_dataset(model.input_options, predict_n, predict=False, test_set="snakes")
         # predict snakes test set
@@ -341,8 +341,9 @@ def get_predictions(stock_code):
         "lower": lower_all,
         "rollingPredict": past_predictions_all,
         "models": models_all,
-        "grade": rating_calculation.calculate_traffic_light_score(models_all, sd, VAILD_MODEL_THRESHOLD),
-        "threshold": VAILD_MODEL_THRESHOLD
+        "grade": rating_calculation.calculate_traffic_light_score(models_all, sd, VALID_MODEL_THRESHOLD),
+        "threshold": VALID_MODEL_THRESHOLD,
+        "stockTrendScore": rating_calculation.calculate_stock_trend_score(models_all, VALID_MODEL_THRESHOLD)
     }
 
 def save_predictions_local(stock_code):
